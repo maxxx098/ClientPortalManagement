@@ -21,24 +21,38 @@ class ClientKeyController extends Controller
 
     public function store()
     {
-        $key = Str::uuid()->toString();
+        $key = \Illuminate\Support\Str::uuid()->toString();
 
         $clientKey = ClientKey::create([
             'key' => $key,
-            'used' => false,
+            'locked' => false,
         ]);
 
         return redirect()->route('client-keys.index')->with('success', 'Client key generated!');
     }
 
-    public function markUsed($id)
+    public function markLocked($id)
     {
         $clientKey = ClientKey::findOrFail($id);
-        $clientKey->used = true;
-        $clientKey->save();
+        $clientKey->update([
+            'locked' => true,
+            'locked_at' => now(),
+        ]);
 
-        return redirect()->route('client-keys.index')->with('success', 'Client key marked as used!');
+        return redirect()->route('client-keys.index')->with('success', 'Client key locked!');
     }
+
+    public function unlock($id)
+    {
+        $clientKey = ClientKey::findOrFail($id);
+        $clientKey->update([
+            'locked' => false,
+            'locked_at' => null,
+        ]);
+
+        return redirect()->route('client-keys.index')->with('success', 'Client key unlocked!');
+    }
+
     
     public function destroy($id)
     {
@@ -47,4 +61,10 @@ class ClientKeyController extends Controller
 
         return redirect()->route('client-keys.index')->with('success', 'Client key deleted!');
     }
+    public function list()
+{
+    $keys = ClientKey::orderBy('created_at', 'desc')->get(['id', 'key']);
+    return response()->json($keys);
+}
+
 }

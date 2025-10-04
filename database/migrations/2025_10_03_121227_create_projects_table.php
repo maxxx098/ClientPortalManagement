@@ -10,10 +10,8 @@ return new class extends Migration {
         Schema::create('projects', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->foreignId('client_key_id')
-            ->nullable()
-            ->constrained('client_keys')
-            ->onDelete('set null');
+            $table->uuid('client_key_id')->nullable();
+            $table->foreign('client_key_id')->references('key')->on('client_keys')->onDelete('set null');
             $table->text('description')->nullable();
             $table->enum('status', ['planned', 'in_progress', 'on_hold', 'completed'])->default('planned');
             $table->date('start_date')->nullable();

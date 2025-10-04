@@ -11,9 +11,11 @@ import { Trash2, Copy, Check, KeyRound, AlertCircle, Plus } from "lucide-react";
 interface ClientKey {
   id: number;
   key: string;
-  used: boolean;
+  locked: boolean;
+  locked_at?: string;
   created_at: string;
 }
+
 
 interface Props {
   keys: ClientKey[];
@@ -48,8 +50,9 @@ export default function ClientKeys({ keys }: Props) {
     });
   }
 
-  const availableKeys = keys.filter(key => !key.used).length;
-  const usedKeys = keys.filter(key => key.used).length;
+  const availableKeys = keys.filter(key => !key.locked).length;
+  const lockedKeys = keys.filter(key => key.locked).length;
+  
 
   return (
     <AppLayout>
@@ -101,18 +104,18 @@ export default function ClientKeys({ keys }: Props) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Used Keys</CardTitle>
-              <AlertCircle className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{usedKeys}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Already consumed
-              </p>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Locked Keys</CardTitle>
+            <AlertCircle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{lockedKeys}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Temporarily locked / in use
+            </p>
+          </CardContent>
+        </Card>
         </div>
 
         {/* Alert for no keys */}
@@ -172,17 +175,18 @@ export default function ClientKeys({ keys }: Props) {
                             </Button>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {key.used ? (
-                            <Badge variant="destructive" className="font-normal">
-                              Used
-                            </Badge>
-                          ) : (
-                            <Badge variant="default" className="bg-green-500 hover:bg-green-600 font-normal">
-                              Available
-                            </Badge>
-                          )}
-                        </TableCell>
+                      <TableCell>
+                        {key.locked ? (
+                          <Badge variant="destructive" className="font-normal">
+                            Locked
+                          </Badge>
+                        ) : (
+                          <Badge variant="default" className="bg-green-500 hover:bg-green-600 font-normal">
+                            Available
+                          </Badge>
+                        )}
+                      </TableCell>
+
                         <TableCell className="text-muted-foreground">
                           {new Date(key.created_at).toLocaleDateString('en-US', {
                             year: 'numeric',

@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useInitials } from '@/hooks/use-initials';
 import { type User } from '@/types';
+import { usePage } from '@inertiajs/react';
 
 export function UserInfo({
     user,
@@ -10,6 +11,14 @@ export function UserInfo({
     showEmail?: boolean;
 }) {
     const getInitials = useInitials();
+    const { props } = usePage<{
+        auth?: {
+            client_key_id?: string;
+        };
+    }>();
+
+    const clientKeyId = props.auth?.client_key_id;
+    const isClient = user.email === 'client@system.local';
 
     return (
         <>
@@ -20,10 +29,18 @@ export function UserInfo({
                 </AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate font-medium">
+                    {isClient ? 'Client User' : user.name}
+                </span>
                 {showEmail && (
                     <span className="truncate text-xs text-muted-foreground">
-                        {user.email}
+                        {isClient && clientKeyId ? (
+                            <span className="font-mono" title={clientKeyId}>
+                                Key: {clientKeyId.slice(0, 8)}...{clientKeyId.slice(-4)}
+                            </span>
+                        ) : (
+                            user.email
+                        )}
                     </span>
                 )}
             </div>

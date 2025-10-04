@@ -51,7 +51,8 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             ) : (
                 // Step 2: Role-specific form
                 <Form
-                    {...AuthenticatedSessionController.store.form()}
+                    action={AuthenticatedSessionController.store.url()}
+                    method="post"
                     resetOnSuccess={['password']}
                     className="flex flex-col gap-6"
                 >

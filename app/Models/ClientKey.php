@@ -9,14 +9,7 @@ class ClientKey extends Model
 {
     protected $fillable = [
         'key',
-        'used',
-        'user_id',
+        'locked',
+        'locked_at',
     ];
-    /**
-     * Get the user that owns the client key.
-     */
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
 }

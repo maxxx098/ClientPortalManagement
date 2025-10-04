@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import projects from "@/routes/projects"
+import projects from "@/routes/admin/projects"
+import axios from "axios";
 
 interface Props {
   open: boolean
@@ -25,7 +27,7 @@ interface Props {
 }
 
 export default function CreateProjectModal({ open, setOpen }: Props) {
-
+const [keys, setKeys] = useState<{id: number, key: string}[]>([]);
 
   const { data, setData, post, processing, reset, errors } = useForm({
     client_key_id: "",
@@ -35,23 +37,25 @@ export default function CreateProjectModal({ open, setOpen }: Props) {
     start_date: "",
     due_date: "",
     priority: "medium",
-  })
+  });
+
+  useEffect(() => {
+    axios.get("/admin/client-keys/list").then(res => {
+      setKeys(res.data);
+    });
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     post(projects.store.url(), {
       onSuccess: () => {
-        // Reset form and close modal on success
-        console.log("Project created successfully")
-        reset()
-        setOpen(false)
+        reset();
+        setOpen(false);
       },
-      onError: () => {
-        // Handle errors if needed
-        console.error("Error creating project:", errors)
-      },
-    })
-  }
+      onError: () => console.error(errors),
+    });
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -59,26 +63,29 @@ export default function CreateProjectModal({ open, setOpen }: Props) {
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
         </DialogHeader>
-
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Client Key (optional) */}
           <div>
-            <Label htmlFor="client_key_id">Client Key ID</Label>
-            <Input
-              id="client_key_id"
-              type="text"
-             
+            <Label htmlFor="client_key_id">Client Key</Label>
+            <Select
               value={data.client_key_id}
-              onChange={(e) => setData("client_key_id", e.target.value)}
-              placeholder="Enter client key ID"
-            />
+              onValueChange={(value) => setData("client_key_id", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a client key" />
+              </SelectTrigger>
+              <SelectContent>
+                {keys.map((key) => (
+             <SelectItem key={key.id} value={key.key}> {/* pass UUID */}
+                {key.key}
+              </SelectItem>
+
+                ))}
+              </SelectContent>
+            </Select>
             {errors.client_key_id && (
-              <p className="text-sm text-red-500 mt-1">
-                {errors.client_key_id}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.client_key_id}</p>
             )}
           </div>
-
           {/* Project Name */}
           <div>
             <Label htmlFor="name">Project Name</Label>

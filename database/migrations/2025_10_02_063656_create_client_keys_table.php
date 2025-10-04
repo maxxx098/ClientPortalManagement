@@ -9,9 +9,8 @@ return new class extends Migration {
     {
         Schema::create('client_keys', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')
-                ->constrained('users')
-                ->onDelete('cascade');
+            $table->boolean('locked')->default(false);
+            $table->timestamp('locked_at')->nullable();
             $table->string('key')->unique();
             $table->boolean('used')->default(false);
             $table->timestamps();

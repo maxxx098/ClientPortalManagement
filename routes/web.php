@@ -1,7 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\ClientKeyController;
-use App\Http\Controllers\Admin\ProjectController;
+use App\Http\Controllers\Admin\ProjectController as AdminProjectController;
+use App\Http\Controllers\Client\ClientProjectController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -12,26 +13,50 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
         $user = auth()->user();
+        $isClient = session('is_client', false);
 
-        if ($user->email === 'client@system.local') {
+        // Clients see client dashboard
+        if ($isClient || $user->role === 'client') {
             return Inertia::render('client/dashboard');
         }
 
+        // Admins see admin dashboard
         return Inertia::render('admin/dashboard');
     })->name('dashboard');
 });
 
+// ============================================
+// ADMIN ONLY ROUTES
+// ============================================
+Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Client Keys Management
+    Route::get('/client-keys', [ClientKeyController::class, 'index'])->name('client-keys.index');
+    Route::post('/client-keys', [ClientKeyController::class, 'store'])->name('client-keys.store');
+    Route::get('/client-keys/list', [ClientKeyController::class, 'list'])->name('client-keys.list');
+    Route::patch('/client-keys/{id}/used', [ClientKeyController::class, 'markUsed'])->name('client-keys.markUsed');
+    Route::delete('/client-keys/{id}', [ClientKeyController::class, 'destroy'])->name('client-keys.destroy');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/admin/client-keys', [ClientKeyController::class, 'index'])->name('client-keys.index');
-    Route::post('/admin/client-keys', [ClientKeyController::class, 'store'])->name('client-keys.store');
-    Route::patch('/admin/client-keys/{id}/used', [ClientKeyController::class, 'markUsed'])->name('client-keys.markUsed');
-    Route::delete('/admin/client-keys/{id}', [ClientKeyController::class, 'destroy'])->name('client-keys.destroy');
+    // Admin Projects Management (all projects)
+    Route::get('/projects', [AdminProjectController::class, 'index'])->name('projects.index');
+    Route::post('/projects', [AdminProjectController::class, 'store'])->name('projects.store');
+    Route::get('/projects/{project}', [AdminProjectController::class, 'show'])->name('projects.show');
+    Route::get('/projects/{project}/edit', [AdminProjectController::class, 'edit'])->name('projects.edit');
+    Route::match(['put', 'patch'], '/projects/{project}', [AdminProjectController::class, 'update'])->name('projects.update');
+    Route::delete('/projects/{project}', [AdminProjectController::class, 'destroy'])->name('projects.destroy');
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/admin/projects', [\App\Http\Controllers\Admin\ProjectController::class, 'index'])->name('projects.index');
-    Route::post('/admin/projects', [\App\Http\Controllers\Admin\ProjectController::class, 'store'])->name('projects.store');
+// ============================================
+// CLIENT ONLY ROUTES
+// ============================================
+Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('client.')->group(function () {
+    // Client Projects (filtered by UUID)
+    Route::get('/projects', [ClientProjectController::class, 'index'])->name('projects.index');
+    Route::get('/projects/create', [ClientProjectController::class, 'create'])->name('projects.create');
+    Route::post('/projects', [ClientProjectController::class, 'store'])->name('projects.store');
+    Route::get('/projects/{project}', [ClientProjectController::class, 'show'])->name('projects.show');
+    Route::get('/projects/{project}/edit', [ClientProjectController::class, 'edit'])->name('projects.edit');
+    Route::match(['put', 'patch'], '/projects/{project}', [ClientProjectController::class, 'update'])->name('projects.update');
+    Route::delete('/projects/{project}', [ClientProjectController::class, 'destroy'])->name('projects.destroy');
 });
 
 require __DIR__.'/settings.php';
