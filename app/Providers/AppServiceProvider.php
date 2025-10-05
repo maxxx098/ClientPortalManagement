@@ -37,36 +37,37 @@ class AppServiceProvider extends ServiceProvider
                     ];
                 }
 
-                $clientKeyUUID = session('client_key_id');
-                $isClient = session('is_client', false);
+                // CRITICAL FIX: Determine if user is a client based on MULTIPLE sources
+                $isClient = false;
+                $clientKeyUUID = null;
 
-                // IMPROVED: Better fallback logic
-                // Check if user's email starts with 'client-' OR if user role is 'client'
-                if (!$isClient) {
-                    if ($user->role === 'client' || str_starts_with($user->email, 'client-')) {
-                        $isClient = true;
-                        
-                        // If client_key_id is missing but user is a client, extract it from email
-                        if (!$clientKeyUUID && str_starts_with($user->email, 'client-')) {
-                            // Extract key from email format: client-{key}@system.local
-                            $emailParts = explode('@', $user->email);
-                            $clientKeyUUID = str_replace('client-', '', $emailParts[0]);
-                            
-                            // Re-set session data
-                            session(['client_key_id' => $clientKeyUUID, 'is_client' => true]);
-                        }
-                    }
+                // Method 1: Check session (if available)
+                if (session()->has('is_client') && session('is_client') === true) {
+                    $isClient = true;
+                    $clientKeyUUID = session('client_key_id');
                 }
 
-                // Debug logging
-                \Log::info('AppServiceProvider Auth Share:', [
-                    'user_email' => $user->email,
-                    'user_role' => $user->role ?? 'none',
-                    'user_is_admin' => $user->is_admin ?? false,
-                    'client_key_id' => $clientKeyUUID,
-                    'is_client' => $isClient,
-                    'session_id' => session()->getId(),
-                ]);
+                // Method 2: Check user role
+                if (!$isClient && isset($user->role) && $user->role === 'client') {
+                    $isClient = true;
+                }
+
+                // Method 3: Check email pattern (most reliable for client users)
+                if (!$isClient && str_starts_with($user->email, 'client-')) {
+                    $isClient = true;
+                }
+
+                // Extract client_key_id from email if not found in session
+                if ($isClient && !$clientKeyUUID && str_starts_with($user->email, 'client-')) {
+                    // Extract key from email format: client-{key}@system.local
+                    $emailParts = explode('@', $user->email);
+                    $clientKeyUUID = str_replace('client-', '', $emailParts[0]);
+                    
+                    \Log::info('AppServiceProvider: Extracted client_key_id from email', [
+                        'user_email' => $user->email,
+                        'extracted_key' => $clientKeyUUID,
+                    ]);
+                }
 
                 // Determine which projects to show in sidebar
                 $projectsForSidebar = [];
@@ -78,9 +79,10 @@ class AppServiceProvider extends ServiceProvider
                         ->get(['id', 'name'])
                         ->toArray();
                         
-                    \Log::info('Client projects query:', [
+                    \Log::info('AppServiceProvider: Client projects loaded', [
                         'client_key_id' => $clientKeyUUID,
                         'count' => count($projectsForSidebar),
+                        'projects' => array_column($projectsForSidebar, 'name'),
                     ]);
                 } elseif (!$isClient && ($user->is_admin ?? false)) {
                     // Admin: show all projects
@@ -88,17 +90,12 @@ class AppServiceProvider extends ServiceProvider
                         ->get(['id', 'name'])
                         ->toArray();
                         
-                    \Log::info('Admin projects query:', [
+                    \Log::info('AppServiceProvider: Admin projects loaded', [
                         'count' => count($projectsForSidebar),
                     ]);
                 }
 
-                \Log::info('Projects for sidebar:', [
-                    'count' => count($projectsForSidebar),
-                    'projects' => $projectsForSidebar,
-                ]);
-
-                return [
+                $authData = [
                     'user' => [
                         'id' => $user->id,
                         'name' => $user->name,
@@ -110,6 +107,20 @@ class AppServiceProvider extends ServiceProvider
                     'is_client' => $isClient,
                     'projectsForSidebar' => $projectsForSidebar,
                 ];
+
+                // Debug logging
+                \Log::info('AppServiceProvider: Auth data being shared', [
+                    'user_email' => $user->email,
+                    'user_role' => $user->role ?? 'none',
+                    'user_is_admin' => $user->is_admin ?? false,
+                    'client_key_id' => $clientKeyUUID,
+                    'is_client' => $isClient,
+                    'projects_count' => count($projectsForSidebar),
+                    'session_has_client_key' => session()->has('client_key_id'),
+                    'session_client_key_value' => session('client_key_id'),
+                ]);
+
+                return $authData;
             },
         ]);
     }

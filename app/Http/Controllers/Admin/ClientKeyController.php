@@ -28,7 +28,8 @@ class ClientKeyController extends Controller
             'locked' => false,
         ]);
 
-        return redirect()->route('client-keys.index')->with('success', 'Client key generated!');
+        return redirect()->route('admin.client-keys.index')->with('success', 'Client key generated!');
+    
     }
 
     public function markLocked($id)
@@ -39,7 +40,8 @@ class ClientKeyController extends Controller
             'locked_at' => now(),
         ]);
 
-        return redirect()->route('client-keys.index')->with('success', 'Client key locked!');
+        return redirect()->route('admin.client-keys.index')->with('success', 'Client key locked!');
+    
     }
 
     public function unlock($id)
@@ -50,7 +52,8 @@ class ClientKeyController extends Controller
             'locked_at' => null,
         ]);
 
-        return redirect()->route('client-keys.index')->with('success', 'Client key unlocked!');
+        return redirect()->route('admin.client-keys.index')->with('success', 'Client key unlocked!');
+    
     }
 
     
@@ -59,12 +62,13 @@ class ClientKeyController extends Controller
         $clientKey = ClientKey::findOrFail($id);
         $clientKey->delete();
 
-        return redirect()->route('client-keys.index')->with('success', 'Client key deleted!');
+        return redirect()->route('admin.client-keys.index')->with('success', 'Client key deleted!');
+    
     }
+    
     public function list()
-{
-    $keys = ClientKey::orderBy('created_at', 'desc')->get(['id', 'key']);
-    return response()->json($keys);
-}
-
+    {
+        $keys = ClientKey::orderBy('created_at', 'desc')->get(['id', 'key']);
+        return response()->json($keys);
+    }
 }

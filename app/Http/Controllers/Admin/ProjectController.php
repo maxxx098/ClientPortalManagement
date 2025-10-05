@@ -55,7 +55,7 @@ class ProjectController extends Controller
             'description' => ['nullable', 'string'],
             'status' => ['required', 'in:planned,in_progress,on_hold,completed'],
             'start_date' => ['nullable', 'date'],
-            'due_date' => ['nullable', 'date|after_or_equal:start_date'],
+            'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'priority' => ['required', 'in:low,medium,high'],
             'client_key_id' => ['required', 'string', 'exists:client_keys,key'],
         ]);
@@ -76,7 +76,7 @@ class ProjectController extends Controller
             'description' => ['nullable', 'string'],
             'status' => ['required', 'in:planned,in_progress,on_hold,completed'],
             'start_date' => ['nullable', 'date'],
-            'due_date' => ['nullable', 'date|after_or_equal:start_date'],
+            'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'priority' => ['required', 'in:low,medium,high'],
             'client_key_id' => ['required', 'string', 'exists:client_keys,key'],
         ]);

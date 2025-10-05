@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ClientKeyController;
 use App\Http\Controllers\Admin\ProjectController as AdminProjectController;
 use App\Http\Controllers\Client\ClientProjectController;
+use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -57,6 +58,12 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
     Route::get('/projects/{project}/edit', [ClientProjectController::class, 'edit'])->name('projects.edit');
     Route::match(['put', 'patch'], '/projects/{project}', [ClientProjectController::class, 'update'])->name('projects.update');
     Route::delete('/projects/{project}', [ClientProjectController::class, 'destroy'])->name('projects.destroy');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
+    Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
+    Route::patch('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
 });
 
 require __DIR__.'/settings.php';

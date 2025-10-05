@@ -10,12 +10,16 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, KeyRound, LayoutGrid, ProjectorIcon } from 'lucide-react';
+import { BookOpen, Folder, KeyRound, LayoutGrid, ProjectorIcon, TagsIcon } from 'lucide-react';
 import AppLogo from './app-logo';
 import { usePage } from '@inertiajs/react';
+import projects from '@/routes/admin/projects';
+import clientProjects from '@/routes/client/projects';
+import clientKeys from '@/routes/admin/client-keys';
+import tasks from '@/routes/tasks';
+import { dashboard } from '@/routes';
 
 export function AppSidebar() {
   const { props } = usePage<{
@@ -33,11 +37,22 @@ export function AppSidebar() {
 
   const user = props.auth?.user;
   const clientKeyId = props.auth?.client_key_id;
-  const isClient = props.auth?.is_client ?? false;
+  
+  // CRITICAL FIX: Fallback client detection if is_client is false but user is clearly a client
+  let isClient = props.auth?.is_client ?? false;
+  
+  // If is_client is false but user role is 'client' or email starts with 'client-', override it
+  if (!isClient && user) {
+    if (user.role === 'client' || user.email?.startsWith('client-')) {
+      isClient = true;
+      console.warn('⚠️ is_client was false but user is clearly a client - overriding!');
+    }
+  }
+  
   const projectsForSidebar = props.auth?.projectsForSidebar ?? [];
 
   // Debug logging
-  console.log('AppSidebar Debug:', {
+  console.log('=== AppSidebar Debug ===', {
     user_email: user?.email,
     user_role: user?.role,
     user_is_admin: user?.is_admin,
@@ -45,35 +60,49 @@ export function AppSidebar() {
     is_client: isClient,
     has_user: !!user,
     projectsCount: projectsForSidebar.length,
+    projects: projectsForSidebar,
+    auth_props: props.auth,
   });
 
+  // Determine dashboard URL based on role
+  const dashboardUrl = isClient ? dashboard.url() : dashboard.url();
+  console.log('Determined dashboardUrl:', dashboardUrl);
   const mainNavItems: NavItem[] = [
-    { title: "Dashboard", href: dashboard(), icon: LayoutGrid },
+    { title: "Dashboard", href: dashboardUrl, icon: LayoutGrid },
+    { title: "Tasks", href: tasks.index.url(), icon: TagsIcon },
   ];
 
   // Add Projects navigation with correct route based on role
+  console.log('Determining nav items...', { isClient, is_admin: user?.is_admin });
+  
   if (isClient) {
+    console.log('Adding CLIENT Projects nav item');
     // Client Projects Route
     mainNavItems.push({
       title: "Projects",
-      href: route('client.projects.index'),
+      href: clientProjects.index.url(),
       icon: ProjectorIcon,
     });
   } else if (user?.is_admin) {
+    console.log('Adding ADMIN Projects nav item');
     // Admin Projects Route
     mainNavItems.push({
       title: "Projects",
-      href: route('admin.projects.index'),
+      href: projects.index.url(),
       icon: ProjectorIcon,
     });
     
     // Only show Client Keys to admins
     mainNavItems.push({
       title: "Client Keys",
-      href: route('admin.client-keys.index'),
+      href: clientKeys.index.url(),
       icon: KeyRound,
     });
+  } else {
+    console.log('NOT adding any Projects nav item', { isClient, is_admin: user?.is_admin });
   }
+
+  console.log('Final mainNavItems:', mainNavItems);
 
   const footerNavItems: NavItem[] = [
     {
@@ -94,7 +123,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href={dashboard()} prefetch>
+              <Link href={dashboardUrl} prefetch>
                 <AppLogo />
               </Link>
             </SidebarMenuButton>
@@ -107,13 +136,9 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <NavFooter items={footerNavItems} className="mt-auto" />
+       
         <NavUser />
       </SidebarFooter>
     </Sidebar>
   );
-}
-
-function route(arg0: string): NonNullable<string | import("@inertiajs/core").UrlMethodPair | undefined> {
-  throw new Error('Function not implemented.');
 }

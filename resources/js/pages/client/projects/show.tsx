@@ -1,28 +1,14 @@
-import { Head, Link, router } from "@inertiajs/react"
+import { Head, router } from "@inertiajs/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import AppLayout from '@/layouts/app-layout'
-import projects from "@/routes/admin/projects"
 import { 
   ArrowLeft, 
   Calendar, 
   Clock, 
-  AlertCircle, 
-  Pencil, 
-  Trash2 
+  AlertCircle
 } from "lucide-react"
-import { useState } from "react"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 
 interface Project {
   id: number
@@ -39,12 +25,9 @@ interface Project {
 
 interface Props {
   project: Project
-  isAdmin?: boolean
 }
 
-export default function Show({ project, isAdmin = false }: Props) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-
+export default function Show({ project }: Props) {
   const priorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case "high":
@@ -82,14 +65,6 @@ export default function Show({ project, isAdmin = false }: Props) {
     })
   }
 
-  const handleDelete = () => {
-    router.delete(projects.destroy.url({ project: project.id }), {
-      onSuccess: () => {
-        router.visit(projects.index.url())
-      }
-    })
-  }
-
   const formatStatus = (status: string) => {
     return status.split('_').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1)
@@ -105,49 +80,26 @@ export default function Show({ project, isAdmin = false }: Props) {
         <div className="mb-6">
           <Button
             variant="ghost"
-            onClick={() => router.visit(projects.index.url())}
+            onClick={() => router.visit('/client/projects')}
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Projects
+            Back to My Projects
           </Button>
         </div>
 
         {/* Header Section */}
         <div className="mb-8">
-          <div className="flex justify-between items-start mb-4">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold">{project.name}</h1>
-              <div className="flex gap-3 items-center">
-                <Badge className={priorityColor(project.priority)}>
-                  {project.priority.toUpperCase()}
-                </Badge>
-                <Badge className={statusColor(project.status)}>
-                  {formatStatus(project.status)}
-                </Badge>
-              </div>
+          <div className="space-y-2 mb-4">
+            <h1 className="text-3xl font-bold">{project.name}</h1>
+            <div className="flex gap-3 items-center flex-wrap">
+              <Badge className={priorityColor(project.priority)}>
+                {project.priority.toUpperCase()} PRIORITY
+              </Badge>
+              <Badge className={statusColor(project.status)}>
+                {formatStatus(project.status)}
+              </Badge>
             </div>
-
-            {isAdmin && (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => router.visit(projects.edit.url({ project: project.id }))}
-                  className="gap-2"
-                >
-                  <Pencil className="h-4 w-4" />
-                  Edit
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => setDeleteDialogOpen(true)}
-                  className="gap-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
-              </div>
-            )}
           </div>
         </div>
 
@@ -156,11 +108,11 @@ export default function Show({ project, isAdmin = false }: Props) {
           {/* Description Card */}
           <Card className="md:col-span-2">
             <CardHeader>
-              <CardTitle>Description</CardTitle>
+              <CardTitle>Project Description</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground whitespace-pre-wrap">
-                {project.description || "No description provided."}
+              <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                {project.description || "No description provided for this project."}
               </p>
             </CardContent>
           </Card>
@@ -170,7 +122,7 @@ export default function Show({ project, isAdmin = false }: Props) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Timeline
+                Project Timeline
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -198,18 +150,10 @@ export default function Show({ project, isAdmin = false }: Props) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5" />
-                Project Details
+                Project Information
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">
-                  Client Key
-                </p>
-                <p className="text-base font-mono  bg-muted px-2 py-1 rounded">
-                  {project.client_key_id}
-                </p>
-              </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">
                   Project ID
@@ -217,6 +161,22 @@ export default function Show({ project, isAdmin = false }: Props) {
                 <p className="text-base font-semibold">
                   #{project.id}
                 </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  Current Status
+                </p>
+                <Badge className={statusColor(project.status)}>
+                  {formatStatus(project.status)}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">
+                  Priority Level
+                </p>
+                <Badge className={priorityColor(project.priority)}>
+                  {project.priority.toUpperCase()}
+                </Badge>
               </div>
             </CardContent>
           </Card>
@@ -226,12 +186,12 @@ export default function Show({ project, isAdmin = false }: Props) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                Activity
+                Activity History
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between items-center pb-3 border-b">
-                <p className="text-sm text-muted-foreground">Created</p>
+                <p className="text-sm text-muted-foreground">Project Created</p>
                 <p className="text-sm font-medium">
                   {formatDate(project.created_at)}
                 </p>
@@ -245,29 +205,17 @@ export default function Show({ project, isAdmin = false }: Props) {
             </CardContent>
           </Card>
         </div>
-      </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the project
-              "{project.name}" and remove all associated data.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete Project
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Help Text */}
+        <Card className="mt-6 ">
+          <CardContent className="p-4">
+            <p className="text-sm text-900">
+              <strong>Need help?</strong> If you have questions about this project or need updates, 
+              please contact your project administrator.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </AppLayout>
   )
 }
