@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 class ClientTaskController extends Controller
 {
     /**
-     * Get the client's key ID from session or user email
+     * Get the client's key ID from session 
      */
     private function getClientKeyId()
     {

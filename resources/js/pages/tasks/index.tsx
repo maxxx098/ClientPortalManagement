@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
+import TaskComments from "@/components/task-comment";
 import {
   Dialog,
   DialogContent,
@@ -46,7 +47,11 @@ interface Task {
 interface Props {
   tasks: Task[];
   clients: { id: string; key: string }[];
-  auth: { user: { role: string } };
+  auth: { user: {
+    id: number;
+    client_key_id: string | undefined; role: string 
+} };
+
 }
 
 export default function Index({ tasks: initialTasks, clients, auth }: Props) {
@@ -55,7 +60,19 @@ export default function Index({ tasks: initialTasks, clients, auth }: Props) {
   const [optimisticTasks, setOptimisticTasks] = useState<Task[]>(initialTasks);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
-  
+  const [viewTask, setViewTask] = useState<Task | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+
+// Function to handle viewing a task
+const handleView = (taskId: number) => {
+  const task = optimisticTasks.find((t) => t.id === taskId);
+  if (task) {
+    setViewTask(task);
+    setViewDialogOpen(true);
+  }
+};
+
+
   // Determine route prefix based on user role
   const routePrefix = auth.user.role === 'admin' ? '/admin' : '/client';
   
@@ -274,8 +291,10 @@ export default function Index({ tasks: initialTasks, clients, auth }: Props) {
               onStatusChange={updateTaskStatus}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onView={handleView}
             />
           </div>
+
         </div>
       </div>
 
@@ -302,6 +321,43 @@ export default function Index({ tasks: initialTasks, clients, auth }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+      <DialogContent className="sm:max-w-[700px]">
+        <DialogHeader>
+          <DialogTitle>Task Details</DialogTitle>
+          <DialogDescription>View the full details of this task.</DialogDescription>
+        </DialogHeader>
+
+        {viewTask ? (
+        <div className="space-y-4 mt-4">
+          <div>
+            <h3 className="text-lg font-semibold">{viewTask.title}</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Status:{" "}
+              <span className="capitalize font-medium">{viewTask.status}</span>
+            </p>
+          </div>
+
+          {viewTask.description && (
+            <p className="text-sm leading-relaxed">{viewTask.description}</p>
+          )}
+
+          {/* Add live comments here */}
+        <TaskComments
+          taskId={viewTask.id}
+          isAdmin={auth.user.role === "admin"}
+          clientKey={auth.user.client_key_id}
+          currentUserId={auth.user.id} 
+        />
+
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground mt-4">No task selected.</p>
+      )}
+
+      </DialogContent>
+    </Dialog>
     </AppLayout>
   );
 }

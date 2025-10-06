@@ -2,10 +2,11 @@
 
 import { Head, router } from "@inertiajs/react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import AppLayout from "@/layouts/app-layout"
-import { ArrowLeft, Calendar, Clock, Info } from "lucide-react"
+import { ArrowLeft, Calendar, Clock, FileText, Info, Tag, TrendingUp } from "lucide-react"
 
 interface Project {
   id: number
@@ -28,28 +29,28 @@ export default function ProjectShow({ project }: Props) {
   const priorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case "high":
-        return "bg-red-500 text-white"
+        return "bg-red-500/10 text-red-600 border-red-500/20 dark:bg-red-500/20 dark:text-red-400"
       case "medium":
-        return "bg-yellow-500 text-white"
+        return "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:bg-yellow-500/20 dark:text-yellow-400"
       case "low":
-        return "bg-green-500 text-white"
+        return "bg-green-500/10 text-green-600 border-green-500/20 dark:bg-green-500/20 dark:text-green-400"
       default:
-        return "bg-gray-500 text-white"
+        return "bg-gray-500/10 text-gray-600 border-gray-500/20 dark:bg-gray-500/20 dark:text-gray-400"
     }
   }
 
   const statusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "completed":
-        return "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/40 dark:text-green-300"
+        return "bg-green-500/10 text-green-700 border-green-500/20 dark:bg-green-500/20 dark:text-green-400"
       case "in_progress":
-        return "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/40 dark:text-blue-300"
+        return "bg-blue-500/10 text-blue-700 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-400"
       case "on_hold":
-        return "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-900/40 dark:text-orange-300"
+        return "bg-orange-500/10 text-orange-700 border-orange-500/20 dark:bg-orange-500/20 dark:text-orange-400"
       case "planned":
-        return "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/40 dark:text-purple-300"
+        return "bg-purple-500/10 text-purple-700 border-purple-500/20 dark:bg-purple-500/20 dark:text-purple-400"
       default:
-        return "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/40 dark:text-gray-300"
+        return "bg-gray-500/10 text-gray-700 border-gray-500/20 dark:bg-gray-500/20 dark:text-gray-400"
     }
   }
 
@@ -72,134 +73,181 @@ export default function ProjectShow({ project }: Props) {
     <AppLayout>
       <Head title={project.name} />
 
-      <div className="container mx-auto max-w-6xl px-4 py-8 space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.visit("/client/projects")}
-              className="gap-2 text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-            <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-          </div>
+      <div className="container mx-auto max-w-7xl px-4 py-6 space-y-6">
+        {/* Header Section */}
+        <div className="flex flex-col gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.visit("/client/projects")}
+            className="w-fit gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Projects
+          </Button>
 
-          <div className="flex gap-2 flex-wrap">
-            <Badge className={priorityColor(project.priority)}>
-              {project.priority.toUpperCase()} PRIORITY
-            </Badge>
-            <Badge className={statusColor(project.status)}>
-              {formatStatus(project.status)}
-            </Badge>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="space-y-1">
+              <div className="flex items-center gap-3">
+                <h1 className="text-4xl font-bold tracking-tight">{project.name}</h1>
+              </div>
+              <p className="text-sm text-muted-foreground">Project ID: #{project.id}</p>
+            </div>
+
+            <div className="flex gap-2 flex-wrap items-center">
+              <Badge variant="outline" className={statusColor(project.status)}>
+                {formatStatus(project.status)}
+              </Badge>
+              <Badge variant="outline" className={priorityColor(project.priority)}>
+                {project.priority.toUpperCase()} Priority
+              </Badge>
+            </div>
           </div>
         </div>
 
-        {/* Project Summary */}
-        <Card className="border border-border/50 bg-card/60 backdrop-blur-sm shadow-sm">
-          <CardContent className="grid gap-6 md:grid-cols-3 py-6">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Project ID</p>
-              <p className="font-semibold">#{project.id}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Start Date</p>
-              <p className="font-semibold">{formatDate(project.start_date)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">Due Date</p>
-              <p className="font-semibold">{formatDate(project.due_date)}</p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Main Grid Layout */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Description Card */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-green-500" />
+                  <CardTitle>Project Description</CardTitle>
+                </div>
+                <CardDescription>Overview and objectives of this project</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
+                  {project.description || "No description provided for this project."}
+                </p>
+              </CardContent>
+            </Card>
 
-        {/* Description */}
-        <Card className="border border-border/50 bg-card/60 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle>Project Description</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {project.description || "No description provided for this project."}
-            </p>
-          </CardContent>
-        </Card>
+            {/* Timeline Card */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-green-500" />
+                  <CardTitle>Project Timeline</CardTitle>
+                </div>
+                <CardDescription>Start and end dates for this project</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      Start Date
+                    </div>
+                    <p className="text-lg font-semibold">{formatDate(project.start_date)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="h-2 w-2 rounded-full bg-red-500" />
+                      Due Date
+                    </div>
+                    <p className="text-lg font-semibold">{formatDate(project.due_date)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Two-column Grid */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Timeline */}
-          <Card className="border border-border/50 bg-card/60 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-green-500" />
-                Project Timeline
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Start</p>
-                <p className="font-semibold">{formatDate(project.start_date)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Due</p>
-                <p className="font-semibold">{formatDate(project.due_date)}</p>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Activity History Card */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-green-500" />
+                  <CardTitle>Activity History</CardTitle>
+                </div>
+                <CardDescription>Key timestamps for this project</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Project Created</p>
+                    <p className="text-xs text-muted-foreground">Initial project setup</p>
+                  </div>
+                  <p className="text-sm font-semibold">{formatDate(project.created_at)}</p>
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Last Updated</p>
+                    <p className="text-xs text-muted-foreground">Most recent modification</p>
+                  </div>
+                  <p className="text-sm font-semibold">{formatDate(project.updated_at)}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Project Info */}
-          <Card className="border border-border/50 bg-card/60 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Info className="h-5 w-5 text-green-500" />
-                Project Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Status</p>
-                <Badge className={statusColor(project.status)}>
-                  {formatStatus(project.status)}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Priority</p>
-                <Badge className={priorityColor(project.priority)}>
-                  {project.priority.toUpperCase()}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+          {/* Right Column - Sidebar */}
+          <div className="space-y-6">
+            {/* Project Status Card */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Info className="h-5 w-5 text-green-500" />
+                  <CardTitle className="text-lg">Project Status</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Current Status</p>
+                  <Badge variant="outline" className={`${statusColor(project.status)} text-sm py-1 px-3`}>
+                    {formatStatus(project.status)}
+                  </Badge>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Priority Level</p>
+                  <Badge variant="outline" className={`${priorityColor(project.priority)} text-sm py-1 px-3`}>
+                    {project.priority.toUpperCase()}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Activity History */}
-        <Card className="border border-border/50 bg-card/60 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-green-500" />
-              Activity History
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between items-center border-b pb-3">
-              <p className="text-sm text-muted-foreground">Project Created</p>
-              <p className="text-sm font-medium">{formatDate(project.created_at)}</p>
-            </div>
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">Last Updated</p>
-              <p className="text-sm font-medium">{formatDate(project.updated_at)}</p>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Quick Info Card */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Tag className="h-5 w-5 text-green-500" />
+                  <CardTitle className="text-lg">Quick Info</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Project ID</span>
+                  <span className="font-mono font-semibold">#{project.id}</span>
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Client Key</span>
+                  <span className="font-mono text-xs">{project.client_key_id || "N/A"}</span>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Help Section */}
-        <div className="text-center pt-6">
-          <p className="text-sm text-muted-foreground">
-            Need help? Contact your <span className="text-green-500 font-medium">project administrator</span> for updates or support.
-          </p>
+            {/* Help Card */}
+            <Card className="border-green-500/20 bg-green-500/5">
+              <CardContent className="pt-6">
+                <div className="space-y-3 text-center">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-green-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-medium text-sm">Need Assistance?</p>
+                    <p className="text-xs text-muted-foreground">
+                      Contact your project administrator for updates or support
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </AppLayout>

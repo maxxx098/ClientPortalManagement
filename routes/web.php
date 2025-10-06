@@ -5,6 +5,8 @@ use App\Http\Controllers\Admin\ProjectController as AdminProjectController;
 use App\Http\Controllers\Admin\TaskController as AdminTaskController;
 use App\Http\Controllers\Client\ClientProjectController;
 use App\Http\Controllers\Client\ClientTaskController;
+use App\Http\Controllers\CommentReactionController;
+use App\Http\Controllers\CommentController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -53,6 +55,13 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('/tasks/{task}/edit', [AdminTaskController::class, 'edit'])->name('tasks.edit');
     Route::patch('/tasks/{task}', [AdminTaskController::class, 'update'])->name('tasks.update');
     Route::delete('/tasks/{task}', [AdminTaskController::class, 'destroy'])->name('tasks.destroy');
+
+    Route::get('/tasks/{task}/comments', [CommentController::class, 'index'])->name('comments.index');
+    Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store');
+    Route::patch('/comments/{comment}', [CommentController::class, 'update']);
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
+    Route::post('/comments/{comment}/react', [CommentReactionController::class, 'react']);
+    
 });
 
 // ============================================
@@ -75,6 +84,12 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
     Route::get('/tasks/{task}/edit', [ClientTaskController::class, 'edit'])->name('tasks.edit');
     Route::patch('/tasks/{task}', [ClientTaskController::class, 'update'])->name('tasks.update');
     Route::delete('/tasks/{task}', [ClientTaskController::class, 'destroy'])->name('tasks.destroy');
+
+    Route::get('/tasks/{task}/comments', [CommentController::class, 'index']);
+    Route::post('/tasks/{task}/comments', [CommentController::class, 'store']);
+    Route::patch('/comments/{comment}', [CommentController::class, 'update']);
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
+    Route::post('/comments/{comment}/react', [CommentReactionController::class, 'react']);
 });
 
 require __DIR__.'/settings.php';
