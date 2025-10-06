@@ -7,15 +7,32 @@ import {
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { GripVertical, Circle, CircleDot, CheckCircle2 } from "lucide-react";
+import {
+  GripVertical,
+  Circle,
+  CircleDot,
+  CheckCircle2,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 
 interface Task {
   id: number;
   title: string;
+  description?: string;
   status: "todo" | "in_progress" | "done";
   client_key_id?: string;
+}
+
+interface KanbanProps {
+  tasks: Task[];
+  onStatusChange: (id: number, status: "todo" | "in_progress" | "done") => void;
+  onEdit: (task: Task) => void;
+  onDelete: (taskId: number) => void;
 }
 
 const columns = {
@@ -36,12 +53,13 @@ const columns = {
   },
 };
 
-interface KanbanProps {
-  tasks: Task[];
-  onStatusChange: (id: number, status: Task["status"]) => void;
-}
 
-export default function KanbanBoard({ tasks, onStatusChange }: KanbanProps) {
+export default function KanbanBoard({
+  tasks,
+  onStatusChange,
+  onEdit,
+  onDelete,
+}: KanbanProps) {
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
     const { draggableId, destination } = result;
@@ -55,9 +73,10 @@ export default function KanbanBoard({ tasks, onStatusChange }: KanbanProps) {
         {Object.entries(columns).map(([col, config]) => {
           const Icon = config.icon;
           const columnTasks = tasks.filter((task) => task.status === col);
-          
+
           return (
             <div key={col} className="flex flex-col">
+              {/* Column Header */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Icon className={`h-5 w-5 ${config.color}`} />
@@ -68,6 +87,7 @@ export default function KanbanBoard({ tasks, onStatusChange }: KanbanProps) {
                 </Badge>
               </div>
 
+              {/* Droppable area */}
               <Droppable droppableId={col}>
                 {(provided, snapshot) => (
                   <div
@@ -96,26 +116,50 @@ export default function KanbanBoard({ tasks, onStatusChange }: KanbanProps) {
                                   : "hover:shadow-md"
                               }`}
                             >
-                              <CardContent className="p-4">
-                                <div className="flex items-start gap-3">
-                                  <div
-                                    {...provided.dragHandleProps}
-                                    className="mt-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <GripVertical className="h-4 w-4" />
+                             <CardContent className="p-4">
+                                <div className="flex flex-col gap-3">
+                                  {/* Top Row: Drag + Title */}
+                                  <div className="flex items-start gap-3">
+                                    <div
+                                      {...provided.dragHandleProps}
+                                      className="mt-0.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                                    >
+                                      <GripVertical className="h-5 w-5" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium leading-relaxed break-words">
+                                        {task.title}
+                                      </p>
+                                    </div>
+                                      <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium leading-relaxed break-words">
+                                        {task.description || "No description"}
+                                      </p>
+                                    </div>
                                   </div>
-                                  <div className="flex-1">
-                                    <p className="text-sm font-medium leading-relaxed">
-                                      {task.title}
-                                    </p>
-                                    {task.client_key_id && (
-                                      <Badge
-                                        variant="outline"
-                                        className="mt-2 text-xs"
+
+                                  {/* Bottom Row: Badge + Actions */}
+                                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                                    
+                                    {/* Actions */}
+                                    <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8"
+                                        onClick={() => onEdit(task)}
                                       >
-                                        Client: {task.client_key_id}
-                                      </Badge>
-                                    )}
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8"
+                                        onClick={() => onDelete(task.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                               </CardContent>
@@ -126,6 +170,7 @@ export default function KanbanBoard({ tasks, onStatusChange }: KanbanProps) {
                       {provided.placeholder}
                     </div>
 
+                    {/* Empty state */}
                     {columnTasks.length === 0 && (
                       <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
                         No tasks yet

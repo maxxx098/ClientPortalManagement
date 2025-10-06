@@ -18,7 +18,8 @@ import { usePage } from '@inertiajs/react';
 import projects from '@/routes/admin/projects';
 import clientProjects from '@/routes/client/projects';
 import clientKeys from '@/routes/admin/client-keys';
-import tasks from '@/routes/tasks';
+import adminTasks from '@/routes/admin/tasks';
+import clientTasks from '@/routes/client/tasks';
 import { dashboard } from '@/routes';
 
 export function AppSidebar() {
@@ -67,15 +68,23 @@ export function AppSidebar() {
   // Determine dashboard URL based on role
   const dashboardUrl = isClient ? dashboard.url() : dashboard.url();
   console.log('Determined dashboardUrl:', dashboardUrl);
+  
   const mainNavItems: NavItem[] = [
     { title: "Dashboard", href: dashboardUrl, icon: LayoutGrid },
-    { title: "Tasks", href: tasks.index.url(), icon: TagsIcon },
   ];
 
-  // Add Projects navigation with correct route based on role
+  // Add Tasks navigation with correct route based on role
   console.log('Determining nav items...', { isClient, is_admin: user?.is_admin });
   
   if (isClient) {
+    console.log('Adding CLIENT Tasks nav item');
+    // Client Tasks Route
+    mainNavItems.push({
+      title: "Tasks",
+      href: clientTasks.index.url(),
+      icon: TagsIcon,
+    });
+    
     console.log('Adding CLIENT Projects nav item');
     // Client Projects Route
     mainNavItems.push({
@@ -84,6 +93,14 @@ export function AppSidebar() {
       icon: ProjectorIcon,
     });
   } else if (user?.is_admin) {
+    console.log('Adding ADMIN Tasks nav item');
+    // Admin Tasks Route
+    mainNavItems.push({
+      title: "Tasks",
+      href: adminTasks.index.url(),
+      icon: TagsIcon,
+    });
+    
     console.log('Adding ADMIN Projects nav item');
     // Admin Projects Route
     mainNavItems.push({
@@ -99,7 +116,7 @@ export function AppSidebar() {
       icon: KeyRound,
     });
   } else {
-    console.log('NOT adding any Projects nav item', { isClient, is_admin: user?.is_admin });
+    console.log('NOT adding any Projects/Tasks nav items', { isClient, is_admin: user?.is_admin });
   }
 
   console.log('Final mainNavItems:', mainNavItems);

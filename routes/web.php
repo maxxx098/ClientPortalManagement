@@ -2,8 +2,9 @@
 
 use App\Http\Controllers\Admin\ClientKeyController;
 use App\Http\Controllers\Admin\ProjectController as AdminProjectController;
+use App\Http\Controllers\Admin\TaskController as AdminTaskController;
 use App\Http\Controllers\Client\ClientProjectController;
-use App\Http\Controllers\TaskController;
+use App\Http\Controllers\Client\ClientTaskController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -42,8 +43,16 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/projects', [AdminProjectController::class, 'store'])->name('projects.store');
     Route::get('/projects/{project}', [AdminProjectController::class, 'show'])->name('projects.show');
     Route::get('/projects/{project}/edit', [AdminProjectController::class, 'edit'])->name('projects.edit');
-    Route::match(['put', 'patch'], '/projects/{project}', [AdminProjectController::class, 'update'])->name('projects.update');
+    Route::put('/projects/{project}', [AdminProjectController::class, 'update'])->name('projects.update');
+    Route::patch('/projects/{project}', [AdminProjectController::class, 'update']);
     Route::delete('/projects/{project}', [AdminProjectController::class, 'destroy'])->name('projects.destroy');
+
+    // Admin Tasks Management (all tasks)
+    Route::get('/tasks', [AdminTaskController::class, 'index'])->name('tasks.index');
+    Route::post('/tasks', [AdminTaskController::class, 'store'])->name('tasks.store');
+    Route::get('/tasks/{task}/edit', [AdminTaskController::class, 'edit'])->name('tasks.edit');
+    Route::patch('/tasks/{task}', [AdminTaskController::class, 'update'])->name('tasks.update');
+    Route::delete('/tasks/{task}', [AdminTaskController::class, 'destroy'])->name('tasks.destroy');
 });
 
 // ============================================
@@ -56,14 +65,16 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
     Route::post('/projects', [ClientProjectController::class, 'store'])->name('projects.store');
     Route::get('/projects/{project}', [ClientProjectController::class, 'show'])->name('projects.show');
     Route::get('/projects/{project}/edit', [ClientProjectController::class, 'edit'])->name('projects.edit');
-    Route::match(['put', 'patch'], '/projects/{project}', [ClientProjectController::class, 'update'])->name('projects.update');
+    Route::put('/projects/{project}', [ClientProjectController::class, 'update'])->name('projects.update');
+    Route::patch('/projects/{project}', [ClientProjectController::class, 'update']);
     Route::delete('/projects/{project}', [ClientProjectController::class, 'destroy'])->name('projects.destroy');
-});
 
-Route::middleware(['auth'])->group(function () {
-    Route::get('/tasks', [TaskController::class, 'index'])->name('tasks.index');
-    Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
-    Route::patch('/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+    // Client Tasks (filtered by client_key_id)
+    Route::get('/tasks', [ClientTaskController::class, 'index'])->name('tasks.index');
+    Route::post('/tasks', [ClientTaskController::class, 'store'])->name('tasks.store');
+    Route::get('/tasks/{task}/edit', [ClientTaskController::class, 'edit'])->name('tasks.edit');
+    Route::patch('/tasks/{task}', [ClientTaskController::class, 'update'])->name('tasks.update');
+    Route::delete('/tasks/{task}', [ClientTaskController::class, 'destroy'])->name('tasks.destroy');
 });
 
 require __DIR__.'/settings.php';

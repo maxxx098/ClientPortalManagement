@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\ClientKey;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,8 +17,8 @@ class Task extends Model
         'client_key_id',
     ];
 
-    public function client()
+    public function clientkey()
     {
-        return $this->belongsTo(Client::class);
+       return $this->belongsTo(ClientKey::class, 'client_key_id', 'key');
     }
 }
