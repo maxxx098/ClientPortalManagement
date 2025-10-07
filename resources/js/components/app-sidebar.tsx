@@ -39,7 +39,6 @@ export function AppSidebar() {
   const user = props.auth?.user;
   const clientKeyId = props.auth?.client_key_id;
   
-  // CRITICAL FIX: Fallback client detection if is_client is false but user is clearly a client
   let isClient = props.auth?.is_client ?? false;
   
   // If is_client is false but user role is 'client' or email starts with 'client-', override it
@@ -121,19 +120,6 @@ export function AppSidebar() {
 
   console.log('Final mainNavItems:', mainNavItems);
 
-  const footerNavItems: NavItem[] = [
-    {
-      title: "Repository",
-      href: "https://github.com/laravel/react-starter-kit",
-      icon: Folder,
-    },
-    {
-      title: "Documentation",
-      href: "https://laravel.com/docs/starter-kits#react",
-      icon: BookOpen,
-    },
-  ];
-
   return (
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
@@ -153,7 +139,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-       
         <NavUser />
       </SidebarFooter>
     </Sidebar>

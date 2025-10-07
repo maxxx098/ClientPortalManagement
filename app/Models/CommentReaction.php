@@ -11,7 +11,7 @@ class CommentReaction extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['comment_id', 'user_id', 'emoji'];
+    protected $fillable = ['comment_id', 'user_id', 'emoji', 'client_key_id'];
 
     public function comment() {
         return $this->belongsTo(Comment::class);

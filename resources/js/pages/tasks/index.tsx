@@ -46,15 +46,17 @@ interface Task {
 
 interface Props {
   tasks: Task[];
-  clients: { id: string; key: string }[];
-  auth: { user: {
-    id: number;
-    client_key_id: string | undefined; role: string 
-} };
-
+  clients?: { id: string; key: string }[]; // Make optional for clients
+  client_key_id?: string; // Add this - matches what controller sends
+  auth: { 
+    user: {
+      id: number;
+      role: string;
+    } 
+  };
 }
 
-export default function Index({ tasks: initialTasks, clients, auth }: Props) {
+export default function Index({ tasks: initialTasks, clients = [], client_key_id, auth }: Props) {
   const [open, setOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [optimisticTasks, setOptimisticTasks] = useState<Task[]>(initialTasks);
@@ -347,7 +349,7 @@ const handleView = (taskId: number) => {
         <TaskComments
           taskId={viewTask.id}
           isAdmin={auth.user.role === "admin"}
-          clientKey={auth.user.client_key_id}
+          clientKey={client_key_id}
           currentUserId={auth.user.id} 
         />
 

@@ -11,9 +11,9 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('comment_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('emoji');
+            $table->unsignedBigInteger('client_key_id')->nullable();
+            $table->string('emoji', 10);
             $table->timestamps();
-
             $table->unique(['comment_id', 'user_id', 'emoji']);
         });
     }

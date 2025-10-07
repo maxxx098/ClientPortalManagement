@@ -40,7 +40,7 @@ class ClientTaskController extends Controller
     /**
      * Display a listing of tasks for the authenticated client
      */
-    public function index()
+   public function index()
     {
         $clientKeyId = $this->getClientKeyId();
         
@@ -53,20 +53,15 @@ class ClientTaskController extends Controller
             abort(403, 'Client key not found.');
         }
 
-        // Get tasks that belong to this client
         $tasks = Task::where('client_key_id', $clientKeyId)
             ->with('clientKey:id,key')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        Log::info('Client TaskController Index:', [
-            'client_key_id' => $clientKeyId,
-            'tasks_count' => $tasks->count(),
-        ]);
-
         return Inertia::render('tasks/index', [
             'tasks' => $tasks,
             'client_key_id' => $clientKeyId,
+            'clients' => [], // Empty array for clients view
         ]);
     }
 

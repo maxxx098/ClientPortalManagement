@@ -3,6 +3,8 @@
 use App\Http\Controllers\Admin\ClientKeyController;
 use App\Http\Controllers\Admin\ProjectController as AdminProjectController;
 use App\Http\Controllers\Admin\TaskController as AdminTaskController;
+use App\Http\Controllers\Client\ClientDashboardController;
+use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Client\ClientProjectController;
 use App\Http\Controllers\Client\ClientTaskController;
 use App\Http\Controllers\CommentReactionController;
@@ -11,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('welcome');
+    return Inertia::render('auth/login');
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -21,11 +23,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Clients see client dashboard
         if ($isClient || $user->role === 'client') {
-            return Inertia::render('client/dashboard');
+            return redirect()->route('client.dashboard');
         }
 
         // Admins see admin dashboard
-        return Inertia::render('admin/dashboard');
+        return redirect()->route('admin.dashboard');
     })->name('dashboard');
 });
 
@@ -33,6 +35,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // ADMIN ONLY ROUTES
 // ============================================
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+
+    // Admin Dashboard
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+    
     // Client Keys Management
     Route::get('/client-keys', [ClientKeyController::class, 'index'])->name('client-keys.index');
     Route::post('/client-keys', [ClientKeyController::class, 'store'])->name('client-keys.store');
@@ -56,18 +62,25 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::patch('/tasks/{task}', [AdminTaskController::class, 'update'])->name('tasks.update');
     Route::delete('/tasks/{task}', [AdminTaskController::class, 'destroy'])->name('tasks.destroy');
 
+    // Admin Comments
     Route::get('/tasks/{task}/comments', [CommentController::class, 'index'])->name('comments.index');
     Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store');
     Route::patch('/comments/{comment}', [CommentController::class, 'update']);
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
     Route::post('/comments/{comment}/react', [CommentReactionController::class, 'react']);
-    
+    Route::post('/comments/{comment}/react', [CommentController::class, 'addReaction']);
+    Route::post('/comments/{comment}/pin', [CommentController::class, 'togglePin']);
+    Route::post('/comments/{comment}/highlight', [CommentController::class, 'toggleHighlight']);
+
 });
 
 // ============================================
 // CLIENT ONLY ROUTES
 // ============================================
 Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('client.')->group(function () {
+    // Client Dashboard
+    Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
+
     // Client Projects (filtered by UUID)
     Route::get('/projects', [ClientProjectController::class, 'index'])->name('projects.index');
     Route::get('/projects/create', [ClientProjectController::class, 'create'])->name('projects.create');
@@ -85,11 +98,13 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
     Route::patch('/tasks/{task}', [ClientTaskController::class, 'update'])->name('tasks.update');
     Route::delete('/tasks/{task}', [ClientTaskController::class, 'destroy'])->name('tasks.destroy');
 
+    // Client Comments
     Route::get('/tasks/{task}/comments', [CommentController::class, 'index']);
     Route::post('/tasks/{task}/comments', [CommentController::class, 'store']);
     Route::patch('/comments/{comment}', [CommentController::class, 'update']);
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
     Route::post('/comments/{comment}/react', [CommentReactionController::class, 'react']);
+    Route::post('/comments/{comment}/react', [CommentController::class, 'addReaction']);
 });
 
 require __DIR__.'/settings.php';

@@ -24,8 +24,9 @@ class Task extends Model
     }
 
     public function comments()
-{
-    return $this->morphMany(\App\Models\Comment::class, 'commentable');
-}
+    {
+        return $this->morphMany(Comment::class, 'commentable');
+    }
+
 
 }

@@ -15,7 +15,6 @@ return new class extends Migration
             $table->enum('status', ['todo', 'in_progress', 'done'])->default('todo');
             $table->string('client_key_id'); // Store UUID key, not foreign key ID
             $table->timestamps();
-            
             // Add index for better performance
             $table->index('client_key_id');
         });

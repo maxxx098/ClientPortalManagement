@@ -8,21 +8,30 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureUserIsClient
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
         $isClient = $request->session()->get('is_client', false);
         $clientKeyId = $request->session()->get('client_key_id');
 
-        // Check if user is a client
-        if (!$isClient || !$clientKeyId) {
-            abort(403, 'Access denied. This area is for clients only.');
+        // Check session first
+        if ($isClient && $clientKeyId) {
+            return $next($request);
         }
 
-        return $next($request);
+        // For API-like requests (comments), check request body
+        if ($request->has('client_key_id')) {
+            $requestClientKeyId = $request->input('client_key_id');
+            
+            // Validate the client_key_id exists
+            $keyExists = \App\Models\ClientKey::where('id', $requestClientKeyId)
+                ->where('is_used', true)
+                ->exists();
+            
+            if ($keyExists) {
+                return $next($request);
+            }
+        }
+
+        abort(403, 'Access denied. This area is for clients only.');
     }
 }

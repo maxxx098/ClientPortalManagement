@@ -14,11 +14,21 @@ export function UserInfo({
     const { props } = usePage<{
         auth?: {
             client_key_id?: string;
+            is_client?: boolean;
         };
     }>();
 
     const clientKeyId = props.auth?.client_key_id;
-    const isClient = user.email === 'client@system.local';
+    
+    // Use the same logic as AppSidebar to determine if user is a client
+    let isClient = props.auth?.is_client ?? false;
+    
+    // If is_client is false but user role is 'client' or email starts with 'client-', override it
+    if (!isClient && user) {
+        if (user.role === 'client' || user.email?.startsWith('client-') || user.email === 'client@system.local') {
+            isClient = true;
+        }
+    }
 
     return (
         <>
