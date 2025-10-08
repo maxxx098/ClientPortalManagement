@@ -42,6 +42,7 @@ class TaskController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'client_key_id' => 'required|exists:client_keys,key',
+            'due_date' => 'nullable|date',
             'status' => 'nullable|in:todo,in_progress,done',
         ]);
 
@@ -54,6 +55,7 @@ class TaskController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'] ?? 'todo',
+            'due_date' => $validated['due_date'] ?? null,
             'client_key_id' => $validated['client_key_id'],
         ]);
 
@@ -98,6 +100,7 @@ class TaskController extends Controller
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'client_key_id' => 'required|exists:client_keys,key',
+                'due_date' => 'nullable|date',
                 'status' => 'nullable|in:todo,in_progress,done',
             ]);
 
@@ -105,6 +108,7 @@ class TaskController extends Controller
                 'title' => $validated['title'],
                 'description' => $validated['description'] ?? null,
                 'status' => $validated['status'] ?? $task->status,
+                'due_date' => $validated['due_date'] ?? $task->due_date,
                 'client_key_id' => $validated['client_key_id'],
             ]);
 

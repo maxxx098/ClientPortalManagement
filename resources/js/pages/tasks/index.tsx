@@ -88,6 +88,7 @@ const handleView = (taskId: number) => {
     title: "",
     description: "",
     client_key_id: "",
+    due_date: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -230,6 +231,21 @@ const handleView = (taskId: number) => {
                     {errors.description && (
                       <p className="text-sm text-red-500">{errors.description}</p>
                     )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="due_date">Due Date</Label>
+                    <Input
+                      id="due_date"
+                      type="date"
+                      value={data.due_date}
+                      onChange={(e) => setData("due_date", e.target.value)}
+                      className={errors.due_date ? "border-red-500" : ""}
+                    />
+                    {errors.due_date && (
+                      <p className="text-sm text-red-500">{errors.due_date}</p>
+                    )}
+                  
+                    <p className="text-sm text-gray-500">Please select a due date if applicable</p>
                   </div>
 
                   {auth.user.role === "admin" && (

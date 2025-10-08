@@ -211,8 +211,8 @@ export default function Index({
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-                  Hello, Jeanneth 👋
+                <h1 className="text-3xl font-bold">
+                  Hello, {stats.users.admins > 1 ? 'Admins' : 'Admin'}!
                 </h1>
               </div>
               <p className="text-muted-foreground text-sm">

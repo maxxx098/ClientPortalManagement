@@ -86,6 +86,7 @@ class ClientTaskController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'due_date' => 'nullable|date',
             'status' => 'nullable|in:todo,in_progress,done',
         ]);
 
@@ -98,6 +99,7 @@ class ClientTaskController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'] ?? 'todo',
+            'due_date' => $validated['due_date'] ?? null,
             'client_key_id' => $clientKeyId,
         ]);
 
@@ -161,12 +163,14 @@ class ClientTaskController extends Controller
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'status' => 'nullable|in:todo,in_progress,done',
+                'due_date' => 'nullable|date',
             ]);
 
             $task->update([
                 'title' => $validated['title'],
                 'description' => $validated['description'] ?? null,
                 'status' => $validated['status'] ?? $task->status,
+                'due_date' => $validated['due_date'] ?? $task->due_date,
             ]);
 
             return redirect()->route('client.tasks.index')
