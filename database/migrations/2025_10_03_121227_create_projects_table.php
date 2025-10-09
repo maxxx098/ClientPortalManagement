@@ -15,6 +15,7 @@ return new class extends Migration {
             $table->text('description')->nullable();
             $table->enum('status', ['planned', 'in_progress', 'on_hold', 'completed'])->default('planned');
             $table->date('start_date')->nullable();
+            $table->string('file')->nullable();
             $table->date('due_date')->nullable();
             $table->enum('priority', ['low', 'medium', 'high'])->default('medium');
             $table->timestamps();

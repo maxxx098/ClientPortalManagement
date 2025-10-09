@@ -71,9 +71,15 @@ class ClientProjectController extends Controller
             'description' => ['nullable', 'string'],
             'status' => ['required', 'in:planned,in_progress,on_hold,completed'],
             'start_date' => ['nullable', 'date'],
+            'file' => ['nullable', 'file', 'max:10240'], // Max 10MB
             'due_date' => ['nullable', 'date|after_or_equal:start_date'],
             'priority' => ['required', 'in:low,medium,high'],
         ]);
+
+        if ($request->hasFile('file')) {
+            $path = $request->file('file')->store('project_files', 'public');
+            $validated['file'] = $path;
+        }
 
         // Force the client's UUID
         $validated['client_key_id'] = $clientKeyUUID;

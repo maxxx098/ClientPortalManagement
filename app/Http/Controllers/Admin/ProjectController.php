@@ -57,8 +57,14 @@ class ProjectController extends Controller
             'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'priority' => ['required', 'in:low,medium,high'],
+            'file' => ['nullable', 'file', 'max:10240'], // Max 10MB
             'client_key_id' => ['required', 'string', 'exists:client_keys,key'],
         ]);
+
+        if ($request->hasFile('file')) {
+            $path = $request->file('file')->store('project_files', 'public');
+            $validated['file'] = $path;
+        }
 
         Project::create($validated);
 
@@ -78,8 +84,18 @@ class ProjectController extends Controller
             'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'priority' => ['required', 'in:low,medium,high'],
+            'file' => ['nullable', 'file', 'max:10240'], // Max 10MB
             'client_key_id' => ['required', 'string', 'exists:client_keys,key'],
         ]);
+
+        if ($request->hasFile('file')) {
+            // Delete old file if exists
+            if ($project->file) {
+                \Storage::disk('public')->delete($project->file);
+            }
+            $path = $request->file('file')->store('project_files', 'public');
+            $validated['file'] = $path;
+        }
 
         $project->update($validated);
 

@@ -62,6 +62,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::patch('/tasks/{task}', [AdminTaskController::class, 'update'])->name('tasks.update');
     Route::delete('/tasks/{task}', [AdminTaskController::class, 'destroy'])->name('tasks.destroy');
 
+    // Admin File Management
+    Route::post('/tasks/{task}/upload-file', [AdminTaskController::class, 'uploadFile'])->name('tasks.uploadFile');
+    Route::delete('/tasks/{task}/remove-file', [AdminTaskController::class, 'removeFile'])->name('tasks.removeFile');
+
     // Admin Comments
     Route::get('/tasks/{task}/comments', [CommentController::class, 'index'])->name('comments.index');
     Route::post('/tasks/{task}/comments', [CommentController::class, 'store'])->name('comments.store');

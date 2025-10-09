@@ -31,6 +31,7 @@ interface Project {
   status: string
   priority: string
   start_date: string
+  file: string | null
   due_date: string
   client_key_id: string
   created_at: string
@@ -246,6 +247,17 @@ export default function Show({ project, isAdmin = false }: Props) {
           </Card>
         </div>
       </div>
+
+      <div>
+        {project.file && (
+          <div className="container mx-auto px-4 pb-8 max-w-5xl">
+            <h2 className="text-xl font-semibold mb-4">Attached File</h2>
+            <a href={project.file} className="text-blue-500 hover:underline">
+              {project.file}
+            </a>
+          </div>
+        )}
+         </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

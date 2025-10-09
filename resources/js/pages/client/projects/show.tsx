@@ -15,6 +15,7 @@ interface Project {
   status: string
   priority: string
   start_date: string
+  file: string | null
   due_date: string
   client_key_id: string
   created_at: string
@@ -181,6 +182,49 @@ export default function ProjectShow({ project }: Props) {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-green-500" />
+                <CardTitle className="text-lg">Project Files</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {project.file ? (
+                project.file.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                  // 🖼️ Show image preview if it's an image
+                  <div className="space-y-2">
+                    <img
+                      src={`/storage/${project.file}`}
+                      alt="Project File"
+                      className="rounded-lg border border-slate-700 max-h-80 object-contain"
+                    />
+                    <a
+                      href={`/storage/${project.file}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-sm text-blue-500 hover:underline"
+                    >
+                      View full image
+                    </a>
+                  </div>
+                ) : (
+                  // 📄 Otherwise show a download link
+                  <a
+                    href={`/storage/${project.file}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    Download file
+                  </a>
+                )
+              ) : (
+                <p className="text-muted-foreground text-sm">No file uploaded.</p>
+              )}
+            </CardContent>
+          </Card>
           </div>
 
           {/* Right Column - Sidebar */}

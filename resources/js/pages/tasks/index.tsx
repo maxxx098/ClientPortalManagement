@@ -42,6 +42,7 @@ interface Task {
   description?: string;
   status: "todo" | "in_progress" | "done";
   client_key_id?: string;
+  file?: string | null; // New file field
 }
 
 interface Props {
@@ -54,6 +55,7 @@ interface Props {
       role: string;
     } 
   };
+  file?: string | null; // New file field
 }
 
 export default function Index({ tasks: initialTasks, clients = [], client_key_id, auth }: Props) {
@@ -89,6 +91,7 @@ const handleView = (taskId: number) => {
     description: "",
     client_key_id: "",
     due_date: "",
+    file: null as File | null,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -248,6 +251,23 @@ const handleView = (taskId: number) => {
                     <p className="text-sm text-gray-500">Please select a due date if applicable</p>
                   </div>
 
+                  <div>
+                    <Label htmlFor="file">Attach File</Label>
+                    <Input
+                      id="file"
+                      type="file"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setData("file", file);
+                    }}
+                    />
+                    {errors.file && (
+                      <p className="text-sm text-red-500 mt-1">{errors.file}</p>
+                    )}
+                    <p className="text-sm text-gray-500">Max file size: 10MB. Allowed types: PDF, DOC, DOCX, JPG, PNG.</p>
+                  </div>
+
                   {auth.user.role === "admin" && (
                     <div className="space-y-2">
                       <Label htmlFor="client">Assign to Client</Label>
@@ -359,6 +379,19 @@ const handleView = (taskId: number) => {
 
           {viewTask.description && (
             <p className="text-sm leading-relaxed">{viewTask.description}</p>
+          )}
+
+          {viewTask.file && (
+            <div>
+              <h4 className="font-medium">Attached File:</h4>
+              <a
+                href={`/storage/${viewTask.file}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {viewTask.file.split("/").pop()}
+              </a>
+            </div>
           )}
 
           {/* Add live comments here */}

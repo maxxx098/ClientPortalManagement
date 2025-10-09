@@ -14,6 +14,7 @@ class Project extends Model
         'name',
         'description',
         'status',
+        'file',
         'start_date',
         'due_date',
         'priority',

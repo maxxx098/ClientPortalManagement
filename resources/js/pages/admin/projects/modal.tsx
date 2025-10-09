@@ -35,6 +35,7 @@ const [keys, setKeys] = useState<{id: number, key: string}[]>([]);
     description: "",
     status: "planned",
     start_date: "",
+    file: null as File | null,
     due_date: "",
     priority: "medium",
   });
@@ -182,6 +183,21 @@ const [keys, setKeys] = useState<{id: number, key: string}[]>([]);
             </Select>
             {errors.priority && (
               <p className="text-sm text-red-500 mt-1">{errors.priority}</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="file">Attach File</Label>
+            <Input
+              id="file"
+              type="file"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setData("file", file);
+              }}
+            />
+            {errors.file && (
+              <p className="text-sm text-red-500 mt-1">{errors.file}</p>
             )}
           </div>
 

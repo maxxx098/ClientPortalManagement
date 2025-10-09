@@ -13,7 +13,9 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->enum('status', ['todo', 'in_progress', 'done'])->default('todo');
+            $table->string('file')->nullable();
             $table->date('due_date')->nullable();
+            $table->string('voice_message')->nullable(); 
             $table->string('client_key_id'); // Store UUID key, not foreign key ID
             $table->timestamps();
             // Add index for better performance
