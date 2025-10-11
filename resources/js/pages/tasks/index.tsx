@@ -86,36 +86,54 @@ const handleView = (taskId: number) => {
   }, [initialTasks]);
 
   // Use Inertia's useForm hook for proper form handling
-  const { data, setData, post, processing, errors, reset } = useForm({
+  const { data, setData, post, processing, reset, errors } = useForm({
     title: "",
     description: "",
     client_key_id: "",
     due_date: "",
-    file: null as File | null,
+    status: "todo",
+    file: null as File | null, // New file field
+    editingTaskId: editingTask ? editingTask.id : null,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (editingTask) {
-      // Update existing task
-      router.patch(`${routePrefix}/tasks/${editingTask.id}`, data, {
-        onSuccess: () => {
-          reset();
-          setOpen(false);
-          setEditingTask(null);
-        },
-      });
-    } else {
-      // Create new task
-      post(`${routePrefix}/tasks`, {
-        onSuccess: () => {
-          reset();
-          setOpen(false);
-        },
-      });
-    }
+  e.preventDefault();
+
+  const formData = new FormData();
+  formData.append("title", data.title);
+  formData.append("description", data.description || "");
+  formData.append("client_key_id", data.client_key_id || "");
+  formData.append("due_date", data.due_date || "");
+  formData.append("status", data.status || "todo");
+
+  if (data.file) {
+    formData.append("file", data.file);
+  }
+  if (editingTask) {
+    formData.append("_method", "PATCH");
+
+    router.patch(`${routePrefix}/tasks/${editingTask.id}`, formData, {
+      preserveScroll: true,
+      onSuccess: () => {
+        reset();
+        setEditingTask(null);
+        setOpen(false);
+      },
+    });
+    return;
+  }
+
+  // Otherwise, create
+  post(`${routePrefix}/tasks`, {
+    preserveScroll: true,
+    onSuccess: () => {
+      reset();
+      setOpen(false);
+    },
+  });
+
   };
+
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
@@ -411,4 +429,8 @@ const handleView = (taskId: number) => {
     </Dialog>
     </AppLayout>
   );
+}
+
+function patch(arg0: string, formData: FormData, arg2: { preserveScroll: boolean; onSuccess: () => void; }) {
+  throw new Error("Function not implemented.");
 }

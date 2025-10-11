@@ -58,6 +58,7 @@ interface Task {
   status: "todo" | "in_progress" | "done";
   client_key_id?: string;
   file?: string | null;
+  due_date?: string | null;
 }
 
 interface KanbanProps {
@@ -247,6 +248,18 @@ export default function KanbanBoard({
                                         </p>
                                       )}
                                       
+                                      {task.due_date && (
+                                        <Badge
+                                          variant="outline"
+                                          className="px-2 py-1 text-xs font-medium"
+                                        >
+                                          Due Date: {
+                                            task.due_date
+                                              ? new Date(task.due_date).toLocaleDateString()
+                                              : "No Due Date"
+                                          }
+                                        </Badge>
+                                      )}
                                       {/* File/Document Indicator */}
                                       {task.file && (
                                         <div className="flex items-center justify-between gap-2 mt-3 p-2 rounded-md bg-muted/50 border border-border/50">
