@@ -40,12 +40,17 @@ class TaskController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
+            'description' => 'required|string',
             'client_key_id' => 'required|exists:client_keys,key',
-            'due_date' => 'nullable|date',
+            'voice_message' => 'required|string',
+            'due_date' => 'required|date',
             'status' => 'nullable|in:todo,in_progress,done',
             'file' => 'nullable|file|max:10240', // Max 10MB
         ]);
+
+        if ($request->has('voice_message')) {
+            $validated['voice_message'] = $request->input('voice_message');
+        }
          
         if ($request->hasFile('file')) {
             $filePath = $request->file('file')->store('tasks', 'public');
@@ -111,10 +116,15 @@ class TaskController extends Controller
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'client_key_id' => 'required|exists:client_keys,key',
+                'voice_message' => 'nullable|string',
                 'due_date' => 'nullable|date',
                 'status' => 'nullable|in:todo,in_progress,done',
                 'file' => 'nullable|file|max:10240', // Max 10MB
             ]);
+
+            if ($request->has('voice_message')) {
+                $validated['voice_message'] = $request->input('voice_message');
+            }
             if ($request->hasFile('file')) {
                 $filePath = $request->file('file')->store('tasks', 'public');
                 $validated['file'] = $filePath;

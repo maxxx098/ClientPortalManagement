@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, User } from "lucide-react";
+import { Plus, User, Mic, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import KanbanBoard from "@/components/kanbanboard";
 
 interface Task {
@@ -42,20 +43,21 @@ interface Task {
   description?: string;
   status: "todo" | "in_progress" | "done";
   client_key_id?: string;
-  file?: string | null; // New file field
+  file?: string | null;
+  voice_message?: string | null;
 }
 
 interface Props {
   tasks: Task[];
-  clients?: { id: string; key: string }[]; // Make optional for clients
-  client_key_id?: string; // Add this - matches what controller sends
+  clients?: { id: string; key: string }[];
+  client_key_id?: string;
   auth: { 
     user: {
       id: number;
       role: string;
     } 
   };
-  file?: string | null; // New file field
+  file?: string | null;
 }
 
 export default function Index({ tasks: initialTasks, clients = [], client_key_id, auth }: Props) {
@@ -66,81 +68,170 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
   const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
   const [viewTask, setViewTask] = useState<Task | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [inputMode, setInputMode] = useState<"text" | "voice">("text");
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
-// Function to handle viewing a task
-const handleView = (taskId: number) => {
-  const task = optimisticTasks.find((t) => t.id === taskId);
-  if (task) {
-    setViewTask(task);
-    setViewDialogOpen(true);
-  }
-};
+  const handleView = (taskId: number) => {
+    const task = optimisticTasks.find((t) => t.id === taskId);
+    if (task) {
+      setViewTask(task);
+      setViewDialogOpen(true);
+    }
+  };
 
-
-  // Determine route prefix based on user role
   const routePrefix = auth.user.role === 'admin' ? '/admin' : '/client';
   
-  // Update optimistic tasks when initialTasks changes
   React.useEffect(() => {
     setOptimisticTasks(initialTasks);
   }, [initialTasks]);
 
-  // Use Inertia's useForm hook for proper form handling
   const { data, setData, post, processing, reset, errors } = useForm({
     title: "",
     description: "",
     client_key_id: "",
     due_date: "",
     status: "todo",
-    file: null as File | null, // New file field
+    file: null as File | null,
+    voice_message: "",
     editingTaskId: editingTask ? editingTask.id : null,
   });
 
+  const startRecording = async () => {
+    try {
+      // Check if mediaDevices is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Your browser doesn't support audio recording. Please use a modern browser like Chrome, Firefox, or Edge.");
+        return;
+      }
+
+      // Check current permission state
+      if (navigator.permissions) {
+        const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        
+        if (permissionStatus.state === 'denied') {
+          alert(
+            "Microphone access is blocked. Please:\n\n" +
+            "1. Click the lock/info icon in the address bar\n" +
+            "2. Allow microphone access\n" +
+            "3. Reload the page and try again"
+          );
+          return;
+        }
+      }
+
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          setData("voice_message", base64data);
+        };
+        reader.readAsDataURL(blob);
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+    } catch (error: any) {
+      console.error("Error accessing microphone:", error);
+      
+      let errorMessage = "Could not access microphone. ";
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage += "Please allow microphone access when prompted, or check your browser settings.";
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage += "No microphone found. Please connect a microphone and try again.";
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage += "Your microphone is being used by another application. Please close other apps and try again.";
+      } else if (error.name === 'SecurityError') {
+        errorMessage += "This feature requires HTTPS. If you're on localhost, make sure you're using http://localhost (not an IP address).";
+      } else {
+        errorMessage += "Please check your browser settings and permissions.";
+      }
+      
+      alert(errorMessage);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const formData = new FormData();
-  formData.append("title", data.title);
-  formData.append("description", data.description || "");
-  formData.append("client_key_id", data.client_key_id || "");
-  formData.append("due_date", data.due_date || "");
-  formData.append("status", data.status || "todo");
+    const formData = new FormData();
+    formData.append("title", data.title);
+    formData.append("description", data.description || "");
+    formData.append("client_key_id", data.client_key_id || client_key_id || "");
+    formData.append("due_date", data.due_date || "");
+    formData.append("status", data.status || "todo");
 
-  if (data.file) {
-    formData.append("file", data.file);
-  }
-  if (editingTask) {
-    formData.append("_method", "PATCH");
+    if (inputMode === "voice" && data.voice_message) {
+      formData.append("voice_message", data.voice_message);
+    }
 
-    router.patch(`${routePrefix}/tasks/${editingTask.id}`, formData, {
+    if (data.file) {
+      formData.append("file", data.file);
+    }
+
+    if (editingTask) {
+      formData.append("_method", "PATCH");
+
+      router.post(`${routePrefix}/tasks/${editingTask.id}`, formData, {
+        preserveScroll: true,
+        onSuccess: () => {
+          reset();
+          setEditingTask(null);
+          setOpen(false);
+          setInputMode("text");
+        },
+      });
+      return;
+    }
+
+    router.post(`${routePrefix}/tasks`, formData, {
       preserveScroll: true,
       onSuccess: () => {
         reset();
-        setEditingTask(null);
         setOpen(false);
+        setInputMode("text");
       },
     });
-    return;
-  }
-
-  // Otherwise, create
-  post(`${routePrefix}/tasks`, {
-    preserveScroll: true,
-    onSuccess: () => {
-      reset();
-      setOpen(false);
-    },
-  });
-
   };
-
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
+    // Set input mode based on how the task was originally created
+    const taskInputMode = task.voice_message ? "voice" : "text";
+    setInputMode(taskInputMode);
+    
     setData({
       title: task.title,
       description: task.description || "",
       client_key_id: task.client_key_id || "",
+      due_date: "",
+      status: task.status,
+      file: null,
+      voice_message: task.voice_message || "",
     });
     setOpen(true);
   };
@@ -166,19 +257,19 @@ const handleView = (taskId: number) => {
     setOpen(isOpen);
     if (!isOpen) {
       setEditingTask(null);
+      setInputMode("text");
+      setData("voice_message", "");
       reset();
     }
   };
 
   const updateTaskStatus = (id: number, status: Task["status"]) => {
-    // Optimistically update the UI immediately
     setOptimisticTasks((prevTasks) =>
       prevTasks.map((task) =>
         task.id === id ? { ...task, status } : task
       )
     );
 
-    // Use Inertia router to update task status in the background
     router.patch(
       `${routePrefix}/tasks/${id}`,
       { status },
@@ -186,7 +277,6 @@ const handleView = (taskId: number) => {
         preserveScroll: true,
         only: ['tasks'],
         onError: () => {
-          // Revert optimistic update on error
           setOptimisticTasks(initialTasks);
         },
       }
@@ -197,7 +287,6 @@ const handleView = (taskId: number) => {
     <AppLayout>
       <div className="min-h-screen p-6 md:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header */}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
@@ -225,6 +314,50 @@ const handleView = (taskId: number) => {
                   </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                  {/* Input Mode Selection - Only show when creating new task */}
+                  {!editingTask && (
+                    <div className="space-y-3">
+                      <Label>Input Method</Label>
+                      <RadioGroup
+                        value={inputMode}
+                        onValueChange={(value: "text" | "voice") => setInputMode(value)}
+                        className="flex gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="text" id="text" />
+                          <Label htmlFor="text" className="flex items-center gap-2 cursor-pointer">
+                            <FileText className="h-4 w-4" />
+                            Text Input
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="voice" id="voice" />
+                          <Label htmlFor="voice" className="flex items-center gap-2 cursor-pointer">
+                            <Mic className="h-4 w-4" />
+                            Voice Message
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                  )}
+
+                  {/* Show input mode indicator when editing */}
+                  {editingTask && (
+                    <div className="bg-muted p-3 rounded-md flex items-center gap-2">
+                      {inputMode === "voice" ? (
+                        <>
+                          <Mic className="h-4 w-4" />
+                          <span className="text-sm">Editing voice message task</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="h-4 w-4" />
+                          <span className="text-sm">Editing text task</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="title">Task Title</Label>
                     <Input
@@ -239,20 +372,47 @@ const handleView = (taskId: number) => {
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={data.description}
-                      onChange={(e) => setData("description", e.target.value)}
-                      placeholder="Describe the task in detail"
-                      rows={4}
-                      className={errors.description ? "border-red-500" : ""}
-                    />
-                    {errors.description && (
-                      <p className="text-sm text-red-500">{errors.description}</p>
-                    )}
-                  </div>
+                  {inputMode === "text" ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        value={data.description}
+                        onChange={(e) => setData("description", e.target.value)}
+                        placeholder="Describe the task in detail"
+                        rows={4}
+                        className={errors.description ? "border-red-500" : ""}
+                      />
+                      {errors.description && (
+                        <p className="text-sm text-red-500">{errors.description}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label>Voice Message</Label>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          type="button"
+                          onClick={isRecording ? stopRecording : startRecording}
+                          variant={isRecording ? "destructive" : "outline"}
+                          className="gap-2"
+                        >
+                          <Mic className="h-4 w-4" />
+                          {isRecording ? "Stop Recording" : "Start Recording"}
+                        </Button>
+                        {data.voice_message && (
+                          <span className="text-sm text-green-600">✓ Voice message recorded</span>
+                        )}
+                      </div>
+                      {isRecording && (
+                        <p className="text-sm text-muted-foreground">Recording in progress...</p>
+                      )}
+                      {errors.voice_message && (
+                        <p className="text-sm text-red-500">{errors.voice_message}</p>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="due_date">Due Date</Label>
                     <Input
@@ -265,7 +425,6 @@ const handleView = (taskId: number) => {
                     {errors.due_date && (
                       <p className="text-sm text-red-500">{errors.due_date}</p>
                     )}
-                  
                     <p className="text-sm text-gray-500">Please select a due date if applicable</p>
                   </div>
 
@@ -276,9 +435,9 @@ const handleView = (taskId: number) => {
                       type="file"
                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                       onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) setData("file", file);
-                    }}
+                        const file = e.target.files?.[0];
+                        if (file) setData("file", file);
+                      }}
                     />
                     {errors.file && (
                       <p className="text-sm text-red-500 mt-1">{errors.file}</p>
@@ -340,7 +499,6 @@ const handleView = (taskId: number) => {
             </Dialog>
           </div>
 
-          {/* Kanban Board */}
           <div className="pt-4">
             <KanbanBoard
               tasks={optimisticTasks}
@@ -350,11 +508,9 @@ const handleView = (taskId: number) => {
               onView={handleView}
             />
           </div>
-
         </div>
       </div>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -379,58 +535,65 @@ const handleView = (taskId: number) => {
       </AlertDialog>
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-      <DialogContent className="sm:max-w-[700px]">
-        <DialogHeader>
-          <DialogTitle>Task Details</DialogTitle>
-          <DialogDescription>View the full details of this task.</DialogDescription>
-        </DialogHeader>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>Task Details</DialogTitle>
+            <DialogDescription>View the full details of this task.</DialogDescription>
+          </DialogHeader>
 
-        {viewTask ? (
-        <div className="space-y-4 mt-4">
-          <div>
-            <h3 className="text-lg font-semibold">{viewTask.title}</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Status:{" "}
-              <span className="capitalize font-medium">{viewTask.status}</span>
-            </p>
-          </div>
+          {viewTask ? (
+            <div className="space-y-4 mt-4">
+              <div>
+                <h3 className="text-lg font-semibold">{viewTask.title}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Status:{" "}
+                  <span className="capitalize font-medium">{viewTask.status}</span>
+                </p>
+              </div>
 
-          {viewTask.description && (
-            <p className="text-sm leading-relaxed">{viewTask.description}</p>
-          )}
+              {viewTask.description && (
+                <div>
+                  <h4 className="font-medium mb-2">Description:</h4>
+                  <p className="text-sm leading-relaxed">{viewTask.description}</p>
+                </div>
+              )}
 
-          {viewTask.file && (
-            <div>
-              <h4 className="font-medium">Attached File:</h4>
-              <a
-                href={`/storage/${viewTask.file}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {viewTask.file.split("/").pop()}
-              </a>
+              {viewTask.voice_message && (
+                <div>
+                  <h4 className="font-medium mb-2">Voice Message:</h4>
+                  <audio controls className="w-full">
+                    <source src={viewTask.voice_message} type="audio/webm" />
+                    Your browser does not support the audio element.
+                  </audio>
+                </div>
+              )}
+
+              {viewTask.file && (
+                <div>
+                  <h4 className="font-medium mb-2">Attached File:</h4>
+                  <a
+                    href={`/storage/${viewTask.file}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {viewTask.file.split("/").pop()}
+                  </a>
+                </div>
+              )}
+
+              <TaskComments
+                taskId={viewTask.id}
+                isAdmin={auth.user.role === "admin"}
+                clientKey={client_key_id}
+                currentUserId={auth.user.id} 
+              />
             </div>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-4">No task selected.</p>
           )}
-
-          {/* Add live comments here */}
-        <TaskComments
-          taskId={viewTask.id}
-          isAdmin={auth.user.role === "admin"}
-          clientKey={client_key_id}
-          currentUserId={auth.user.id} 
-        />
-
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground mt-4">No task selected.</p>
-      )}
-
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
-}
-
-function patch(arg0: string, formData: FormData, arg2: { preserveScroll: boolean; onSuccess: () => void; }) {
-  throw new Error("Function not implemented.");
 }

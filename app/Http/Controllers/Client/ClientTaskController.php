@@ -87,8 +87,20 @@ class ClientTaskController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'due_date' => 'nullable|date',
+            'file' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'voice_message' => 'nullable|string',
             'status' => 'nullable|in:todo,in_progress,done',
         ]);
+
+        if ($request->has('voice_message')) {
+            $validated['voice_message'] = $request->input('voice_message');
+        }
+
+        if ($request->hasFile('file')) {
+            $filePath = $request->file('file')->store('tasks', 'public');
+            $validated['file'] = $filePath;
+        }
+
 
         Log::info('Client TaskController Store: Creating task', [
             'client_key_id' => $clientKeyId,
@@ -99,6 +111,8 @@ class ClientTaskController extends Controller
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'] ?? 'todo',
+            'file' => $validated['file'] ?? null,
+            'voice_message' => $validated['voice_message'] ?? null,
             'due_date' => $validated['due_date'] ?? null,
             'client_key_id' => $clientKeyId,
         ]);
@@ -163,6 +177,8 @@ class ClientTaskController extends Controller
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'status' => 'nullable|in:todo,in_progress,done',
+                'file' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+                'voice_message' => 'nullable|string',
                 'due_date' => 'nullable|date',
             ]);
 
@@ -170,6 +186,8 @@ class ClientTaskController extends Controller
                 'title' => $validated['title'],
                 'description' => $validated['description'] ?? null,
                 'status' => $validated['status'] ?? $task->status,
+                'file' => $validated['file'] ?? $task->file,
+                'voice_message' => $validated['voice_message'] ?? $task->voice_message,
                 'due_date' => $validated['due_date'] ?? $task->due_date,
             ]);
 
