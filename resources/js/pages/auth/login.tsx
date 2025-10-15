@@ -54,12 +54,11 @@ export default function Login({ status, canResetPassword }: LoginProps) {
           <div className="w-full max-w-md space-y-8">
             <div className="text-center space-y-2">
               <h1 className="text-2xl font-semibold tracking-tight">
-                Welcome back to Nucleus
+               Welcome back to <span className="text-primary">ClientSync</span>
               </h1>
-              <p className="text-sm text-muted-foreground">
-                Build your design system effortlessly with our powerful
-                component library.
-              </p>
+                <p className="text-sm text-muted-foreground">
+                Built for freelancers to manage clients and stay in sync with every project.
+                </p>
             </div>
 
             {/* Toggle role (optional for testing or shared login page) */}
