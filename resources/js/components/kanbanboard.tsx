@@ -439,7 +439,7 @@ export default function KanbanBoard({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmRemoveFile}
-              className="bg-red-500 hover:bg-red-600 text-white"
+              className="bg-red-500 hover:bg-red-600 text-white" // color added for emphasis
             >
               Remove File
             </AlertDialogAction>
