@@ -38,41 +38,50 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
+        \Log::info('Admin TaskController Store: Incoming request', [
+            'all_data' => $request->all(),
+            'has_file' => $request->hasFile('file'),
+            'has_voice' => $request->has('voice_message'),
+        ]);
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'required|string',
+            'description' => 'nullable|string',
             'client_key_id' => 'required|exists:client_keys,key',
-            'voice_message' => 'required|string',
-            'due_date' => 'required|date',
+            'voice_message' => 'nullable|string',
+            'due_date' => 'nullable|date',
             'status' => 'nullable|in:todo,in_progress,done',
             'file' => 'nullable|file|max:10240', // Max 10MB
         ]);
 
-        if ($request->has('voice_message')) {
-            $validated['voice_message'] = $request->input('voice_message');
-        }
-         
-        if ($request->hasFile('file')) {
-            $filePath = $request->file('file')->store('tasks', 'public');
-            $validated['file'] = $filePath;
-        }
-
-        \Log::info('Admin TaskController Store: Creating task', [
-            'client_key_id' => $validated['client_key_id'],
-            'title' => $validated['title']
-        ]);
-
-        Task::create([
+        $taskData = [
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'] ?? 'todo',
             'due_date' => $validated['due_date'] ?? null,
             'client_key_id' => $validated['client_key_id'],
-            'file' => $validated['file'] ?? null,
+        ];
+
+        // Handle voice message
+        if ($request->has('voice_message') && !empty($validated['voice_message'])) {
+            $taskData['voice_message'] = $validated['voice_message'];
+        }
+         
+        // Handle file upload
+        if ($request->hasFile('file')) {
+            $filePath = $request->file('file')->store('tasks', 'public');
+            $taskData['file'] = $filePath;
+        }
+
+        \Log::info('Admin TaskController Store: Creating task', [
+            'task_data' => $taskData
         ]);
 
+        $task = Task::create($taskData);
+
         \Log::info('Admin TaskController Store: Task created successfully', [
-            'title' => $validated['title']
+            'task_id' => $task->id,
+            'title' => $task->title
         ]);
 
         return redirect()->route('admin.tasks.index')
@@ -101,7 +110,7 @@ class TaskController extends Controller
     public function update(Request $request, Task $task)
     {
         // Check if it's a status update (from drag-and-drop) or full update (from edit form)
-        if ($request->has('status') && count($request->all()) === 1) {
+        if ($request->has('status') && count($request->all()) === 2) { // 2 because of _method
             // Status update only
             $validated = $request->validate([
                 'status' => 'required|in:todo,in_progress,done',
@@ -122,34 +131,31 @@ class TaskController extends Controller
                 'file' => 'nullable|file|max:10240', // Max 10MB
             ]);
 
-            if ($request->has('voice_message')) {
-                $validated['voice_message'] = $request->input('voice_message');
-            }
-            if ($request->hasFile('file')) {
-                $filePath = $request->file('file')->store('tasks', 'public');
-                $validated['file'] = $filePath;
-            }
-
-            $task->update([
+            $updateData = [
                 'title' => $validated['title'],
                 'description' => $validated['description'] ?? null,
                 'status' => $validated['status'] ?? $task->status,
                 'due_date' => $validated['due_date'] ?? $task->due_date,
                 'client_key_id' => $validated['client_key_id'],
-                'file' => $validated['file'] ?? $task->file,
-            ]);
+            ];
 
-            if (isset($validated['file'])) {
-                \Log::info('Admin TaskController Update: Task updated with new file', [
-                    'task_id' => $task->id,
-                    'file' => $validated['file']
-                ]);
-            } else {
-                \Log::info('Admin TaskController Update: Task updated', [
-                    'task_id' => $task->id,
-                    'title' => $validated['title']
-                ]);
+            // Handle voice message
+            if ($request->has('voice_message') && !empty($validated['voice_message'])) {
+                $updateData['voice_message'] = $validated['voice_message'];
             }
+
+            // Handle file upload
+            if ($request->hasFile('file')) {
+                $filePath = $request->file('file')->store('tasks', 'public');
+                $updateData['file'] = $filePath;
+            }
+
+            $task->update($updateData);
+
+            \Log::info('Admin TaskController Update: Task updated', [
+                'task_id' => $task->id,
+                'title' => $task->title
+            ]);
 
             return redirect()->route('admin.tasks.index')
                 ->with('success', 'Task updated successfully.');

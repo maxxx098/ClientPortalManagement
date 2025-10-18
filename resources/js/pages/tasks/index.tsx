@@ -71,6 +71,7 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
   const [inputMode, setInputMode] = useState<"text" | "voice">("text");
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const handleView = (taskId: number) => {
     const task = optimisticTasks.find((t) => t.id === taskId);
@@ -86,7 +87,7 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
     setOptimisticTasks(initialTasks);
   }, [initialTasks]);
 
-  const { data, setData, post, processing, reset, errors } = useForm({
+  const { data, setData, post, processing, reset, errors, clearErrors } = useForm({
     title: "",
     description: "",
     client_key_id: "",
@@ -94,18 +95,15 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
     status: "todo",
     file: null as File | null,
     voice_message: "",
-    editingTaskId: editingTask ? editingTask.id : null,
   });
 
   const startRecording = async () => {
     try {
-      // Check if mediaDevices is supported
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         alert("Your browser doesn't support audio recording. Please use a modern browser like Chrome, Firefox, or Edge.");
         return;
       }
 
-      // Check current permission state
       if (navigator.permissions) {
         const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
         
@@ -120,7 +118,6 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
         }
       }
 
-      // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       const chunks: Blob[] = [];
@@ -137,10 +134,14 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
         reader.onloadend = () => {
           const base64data = reader.result as string;
           setData("voice_message", base64data);
+          setValidationErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors.voice_message;
+            return newErrors;
+          });
         };
         reader.readAsDataURL(blob);
         
-        // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
       };
 
@@ -175,8 +176,32 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
     }
   };
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!data.title || data.title.trim() === "") {
+      newErrors.title = "Task title is required";
+    }
+
+    if (auth.user.role === "admin" && !data.client_key_id && !client_key_id) {
+      newErrors.client_key_id = "Please select a client";
+    }
+
+    if (inputMode === "voice" && !data.voice_message && !editingTask?.voice_message) {
+      newErrors.voice_message = "Please record a voice message or switch to text input";
+    }
+
+    setValidationErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationErrors({});
+
+    if (!validateForm()) {
+      return;
+    }
 
     const formData = new FormData();
     formData.append("title", data.title);
@@ -203,7 +228,12 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
           setEditingTask(null);
           setOpen(false);
           setInputMode("text");
+          setValidationErrors({});
+          clearErrors();
         },
+        onError: (errors) => {
+          console.error("Validation errors:", errors);
+        }
       });
       return;
     }
@@ -214,13 +244,17 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
         reset();
         setOpen(false);
         setInputMode("text");
+        setValidationErrors({});
+        clearErrors();
       },
+      onError: (errors) => {
+        console.error("Validation errors:", errors);
+      }
     });
   };
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
-    // Set input mode based on how the task was originally created
     const taskInputMode = task.voice_message ? "voice" : "text";
     setInputMode(taskInputMode);
     
@@ -233,6 +267,7 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
       file: null,
       voice_message: task.voice_message || "",
     });
+    setValidationErrors({});
     setOpen(true);
   };
 
@@ -259,7 +294,9 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
       setEditingTask(null);
       setInputMode("text");
       setData("voice_message", "");
+      setValidationErrors({});
       reset();
+      clearErrors();
     }
   };
 
@@ -313,14 +350,16 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
                       : "Add a new task to your kanban board. Fill in the details below."}
                   </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                  {/* Input Mode Selection - Only show when creating new task */}
+                <div className="space-y-4 mt-4">
                   {!editingTask && (
                     <div className="space-y-3">
                       <Label>Input Method</Label>
                       <RadioGroup
                         value={inputMode}
-                        onValueChange={(value: "text" | "voice") => setInputMode(value)}
+                        onValueChange={(value: "text" | "voice") => {
+                          setInputMode(value);
+                          setValidationErrors({});
+                        }}
                         className="flex gap-4"
                       >
                         <div className="flex items-center space-x-2">
@@ -341,7 +380,6 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
                     </div>
                   )}
 
-                  {/* Show input mode indicator when editing */}
                   {editingTask && (
                     <div className="bg-muted p-3 rounded-md flex items-center gap-2">
                       {inputMode === "voice" ? (
@@ -359,16 +397,27 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
                   )}
 
                   <div className="space-y-2">
-                    <Label htmlFor="title">Task Title</Label>
+                    <Label htmlFor="title">
+                      Task Title <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="title"
                       value={data.title}
-                      onChange={(e) => setData("title", e.target.value)}
+                      onChange={(e) => {
+                        setData("title", e.target.value);
+                        if (validationErrors.title) {
+                          setValidationErrors((prev) => {
+                            const newErrors = { ...prev };
+                            delete newErrors.title;
+                            return newErrors;
+                          });
+                        }
+                      }}
                       placeholder="Enter task title"
-                      className={errors.title ? "border-red-500" : ""}
+                      className={errors.title || validationErrors.title ? "border-red-500" : ""}
                     />
-                    {errors.title && (
-                      <p className="text-sm text-red-500">{errors.title}</p>
+                    {(errors.title || validationErrors.title) && (
+                      <p className="text-sm text-red-500">{errors.title || validationErrors.title}</p>
                     )}
                   </div>
 
@@ -378,18 +427,29 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
                       <Textarea
                         id="description"
                         value={data.description}
-                        onChange={(e) => setData("description", e.target.value)}
-                        placeholder="Describe the task in detail"
+                        onChange={(e) => {
+                          setData("description", e.target.value);
+                          if (validationErrors.description) {
+                            setValidationErrors((prev) => {
+                              const newErrors = { ...prev };
+                              delete newErrors.description;
+                              return newErrors;
+                            });
+                          }
+                        }}
+                        placeholder="Describe the task in detail (optional)"
                         rows={4}
-                        className={errors.description ? "border-red-500" : ""}
+                        className={errors.description || validationErrors.description ? "border-red-500" : ""}
                       />
-                      {errors.description && (
-                        <p className="text-sm text-red-500">{errors.description}</p>
+                      {(errors.description || validationErrors.description) && (
+                        <p className="text-sm text-red-500">{errors.description || validationErrors.description}</p>
                       )}
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Label>Voice Message</Label>
+                      <Label>
+                        Voice Message {!editingTask && <span className="text-red-500">*</span>}
+                      </Label>
                       <div className="flex items-center gap-3">
                         <Button
                           type="button"
@@ -401,14 +461,16 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
                           {isRecording ? "Stop Recording" : "Start Recording"}
                         </Button>
                         {data.voice_message && (
-                          <span className="text-sm text-green-600">✓ Voice message recorded</span>
+                          <span className="text-sm text-green-600 flex items-center gap-1">
+                            <span className="text-lg">✓</span> Voice message recorded
+                          </span>
                         )}
                       </div>
                       {isRecording && (
-                        <p className="text-sm text-muted-foreground">Recording in progress...</p>
+                        <p className="text-sm text-muted-foreground animate-pulse">Recording in progress...</p>
                       )}
-                      {errors.voice_message && (
-                        <p className="text-sm text-red-500">{errors.voice_message}</p>
+                      {(errors.voice_message || validationErrors.voice_message) && (
+                        <p className="text-sm text-red-500">{errors.voice_message || validationErrors.voice_message}</p>
                       )}
                     </div>
                   )}
@@ -425,10 +487,10 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
                     {errors.due_date && (
                       <p className="text-sm text-red-500">{errors.due_date}</p>
                     )}
-                    <p className="text-sm text-gray-500">Please select a due date if applicable</p>
+                    <p className="text-sm text-gray-500">Optional - select a due date if applicable</p>
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="file">Attach File</Label>
                     <Input
                       id="file"
@@ -442,19 +504,30 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
                     {errors.file && (
                       <p className="text-sm text-red-500 mt-1">{errors.file}</p>
                     )}
-                    <p className="text-sm text-gray-500">Max file size: 10MB. Allowed types: PDF, DOC, DOCX, JPG, PNG.</p>
+                    <p className="text-sm text-gray-500">Optional - Max 10MB. Allowed: PDF, DOC, DOCX, JPG, PNG</p>
                   </div>
 
                   {auth.user.role === "admin" && (
                     <div className="space-y-2">
-                      <Label htmlFor="client">Assign to Client</Label>
+                      <Label htmlFor="client">
+                        Assign to Client <span className="text-red-500">*</span>
+                      </Label>
                       <Select
                         value={data.client_key_id}
-                        onValueChange={(value) => setData("client_key_id", value)}
+                        onValueChange={(value) => {
+                          setData("client_key_id", value);
+                          if (validationErrors.client_key_id) {
+                            setValidationErrors((prev) => {
+                              const newErrors = { ...prev };
+                              delete newErrors.client_key_id;
+                              return newErrors;
+                            });
+                          }
+                        }}
                       >
                         <SelectTrigger 
                           id="client"
-                          className={errors.client_key_id ? "border-red-500" : ""}
+                          className={errors.client_key_id || validationErrors.client_key_id ? "border-red-500" : ""}
                         >
                           <SelectValue placeholder="Select a client" />
                         </SelectTrigger>
@@ -469,8 +542,8 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
                           ))}
                         </SelectContent>
                       </Select>
-                      {errors.client_key_id && (
-                        <p className="text-sm text-red-500">{errors.client_key_id}</p>
+                      {(errors.client_key_id || validationErrors.client_key_id) && (
+                        <p className="text-sm text-red-500">{errors.client_key_id || validationErrors.client_key_id}</p>
                       )}
                     </div>
                   )}
@@ -484,7 +557,7 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={processing}>
+                    <Button type="button" onClick={handleSubmit} disabled={processing}>
                       {processing
                         ? editingTask
                           ? "Updating..."
@@ -494,7 +567,7 @@ export default function Index({ tasks: initialTasks, clients = [], client_key_id
                         : "Create Task"}
                     </Button>
                   </div>
-                </form>
+                </div>
               </DialogContent>
             </Dialog>
           </div>
