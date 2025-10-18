@@ -10,6 +10,7 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.tsx'],
             ssr: 'resources/js/ssr.tsx',
             refresh: true,
+
         }),
         react(),
         tailwindcss(),
@@ -17,6 +18,13 @@ export default defineConfig({
             formVariants: true,
         }),
     ],
+    build: {
+    manifest: true,
+    outDir: 'public/build',
+    rollupOptions: {
+      input: 'resources/js/app.tsx',
+    },
+  },
     esbuild: {
         jsx: 'automatic',
     },
