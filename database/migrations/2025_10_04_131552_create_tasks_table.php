@@ -16,10 +16,13 @@ return new class extends Migration
             $table->string('file')->nullable();
             $table->date('due_date')->nullable();
             $table->string('voice_message')->nullable(); 
-            $table->string('client_key_id'); // Store UUID key, not foreign key ID
+            $table->string('client_key_id');
             $table->timestamps();
-            // Add index for better performance
+
             $table->index('client_key_id');
+
+            $table->enum('progress_status', ['on_track', 'at_risk', 'off_track'])
+                  ->default('on_track');
         });
     }
 

@@ -1,44 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
-import { router } from "@inertiajs/react";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from "@hello-pangea/dnd";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  GripVertical,
-  Circle,
-  Loader2,
-  CheckCircle2,
-  Pencil,
-  Trash2,
-  MoreVertical,
-  Eye,
-  FileText,
-  Image as ImageIcon,
-  X,
-  Download,
-  AlertTriangle,
-} from "lucide-react";
+import { Plus, User, Mic, FileText, MoreVertical, Edit, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useForm, router } from "@inertiajs/react";
+import AppLayout from "@/layouts/app-layout";
+import TaskComments from "@/components/task-comment";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -50,6 +26,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface Task {
   id: number;
@@ -58,394 +49,745 @@ interface Task {
   status: "todo" | "in_progress" | "done";
   client_key_id?: string;
   file?: string | null;
+  voice_message?: string | null;
   due_date?: string | null;
 }
 
-interface KanbanProps {
+interface Props {
   tasks: Task[];
-  onStatusChange: (id: number, status: Task["status"]) => void;
-  onEdit: (task: Task) => void;
-  onDelete: (taskId: number) => void;
-  onView: (taskId: number) => void;
+  clients?: { id: string; key: string }[];
+  client_key_id?: string;
+  auth: { 
+    user: {
+      id: number;
+      role: string;
+    } 
+  };
+  file?: string | null;
 }
 
-const columns = { 
-  todo: {
-    title: "To Do",
-    icon: Circle,
-    color: "text-slate-500",
-    bgColor: "bg-slate-500/10",
-    borderColor: "border-slate-500/20",
-  },
-  in_progress: {
-    title: "In Progress",
-    icon: Loader2,
-    color: "text-blue-500",
-    bgColor: "bg-blue-500/10",
-    borderColor: "border-blue-500/20",
-  },
-  done: {
-    title: "Done",
-    icon: CheckCircle2,
-    color: "text-green-500",
-    bgColor: "bg-green-500/10",
-    borderColor: "border-green-500/20",
-  },
-};
+export default function Kanban({ tasks: initialTasks, clients = [], client_key_id, auth }: Props) {
+  const [open, setOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [optimisticTasks, setOptimisticTasks] = useState<Task[]>(initialTasks);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<number | null>(null);
+  const [viewTask, setViewTask] = useState<Task | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [inputMode, setInputMode] = useState<"text" | "voice">("text");
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-export default function KanbanBoard({
-  tasks,
-  onStatusChange,
-  onEdit,
-  onDelete,
-  onView,
-}: KanbanProps) {
-  const [viewFileDialog, setViewFileDialog] = useState<{
-    isOpen: boolean;
-    file: string | null;
-    fileName: string;
-  }>({
-    isOpen: false,
-    file: null,
-    fileName: "",
+  const routePrefix = auth.user.role === 'admin' ? '/admin' : '/client';
+  
+  React.useEffect(() => {
+    setOptimisticTasks(initialTasks);
+  }, [initialTasks]);
+
+  const { data, setData, post, processing, reset, errors, clearErrors } = useForm({
+    title: "",
+    description: "",
+    client_key_id: "",
+    due_date: "",
+    status: "todo",
+    file: null as File | null,
+    voice_message: "",
   });
 
-  const [removeFileDialog, setRemoveFileDialog] = useState<{
-    isOpen: boolean;
-    taskId: number | null;
-    fileName: string;
-  }>({
-    isOpen: false,
-    taskId: null,
-    fileName: "",
-  });
+  const columns: { id: Task["status"]; title: string; color: string }[] = [
+    { id: "todo", title: "To Do", color: "bg-slate-700" },
+    { id: "in_progress", title: "In Progress", color: "bg-blue-600" },
+    { id: "done", title: "Done", color: "bg-green-600" },
+  ];
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-    const { draggableId, destination } = result;
-    const newStatus = destination.droppableId as Task["status"];
-    onStatusChange(Number(draggableId), newStatus);
+  const startRecording = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Your browser doesn't support audio recording. Please use a modern browser like Chrome, Firefox, or Edge.");
+        return;
+      }
+
+      if (navigator.permissions) {
+        const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        
+        if (permissionStatus.state === 'denied') {
+          alert(
+            "Microphone access is blocked. Please:\n\n" +
+            "1. Click the lock/info icon in the address bar\n" +
+            "2. Allow microphone access\n" +
+            "3. Reload the page and try again"
+          );
+          return;
+        }
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          setData("voice_message", base64data);
+          setValidationErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors.voice_message;
+            return newErrors;
+          });
+        };
+        reader.readAsDataURL(blob);
+        
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+    } catch (error: any) {
+      console.error("Error accessing microphone:", error);
+      
+      let errorMessage = "Could not access microphone. ";
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        errorMessage += "Please allow microphone access when prompted, or check your browser settings.";
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        errorMessage += "No microphone found. Please connect a microphone and try again.";
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        errorMessage += "Your microphone is being used by another application. Please close other apps and try again.";
+      } else if (error.name === 'SecurityError') {
+        errorMessage += "This feature requires HTTPS. If you're on localhost, make sure you're using http://localhost (not an IP address).";
+      } else {
+        errorMessage += "Please check your browser settings and permissions.";
+      }
+      
+      alert(errorMessage);
+    }
   };
 
-  const isImageFile = (filename: string) => {
-    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
-    return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
   };
 
-  const handleViewFile = (e: React.MouseEvent, file: string) => {
-    e.stopPropagation();
-    setViewFileDialog({
-      isOpen: true,
-      file,
-      fileName: file.split('/').pop() || '',
-    });
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!data.title || data.title.trim() === "") {
+      newErrors.title = "Task title is required";
+    }
+
+    if (auth.user.role === "admin" && !data.client_key_id && !client_key_id) {
+      newErrors.client_key_id = "Please select a client";
+    }
+
+    if (inputMode === "voice" && !data.voice_message && !editingTask?.voice_message) {
+      newErrors.voice_message = "Please record a voice message or switch to text input";
+    }
+
+    setValidationErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleRemoveFileClick = (e: React.MouseEvent, taskId: number, fileName: string) => {
-    e.stopPropagation();
-    setRemoveFileDialog({
-      isOpen: true,
-      taskId,
-      fileName: fileName.split('/').pop() || '',
-    });
-  };
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setValidationErrors({});
 
-  const confirmRemoveFile = () => {
-    if (!removeFileDialog.taskId) return;
+    if (!validateForm()) {
+      return;
+    }
 
-    router.delete(`/admin/tasks/${removeFileDialog.taskId}/remove-file`, {
+    const formData = new FormData();
+    formData.append("title", data.title);
+    formData.append("description", data.description || "");
+    formData.append("client_key_id", data.client_key_id || client_key_id || "");
+    formData.append("status", data.status || "todo");
+    formData.append("due_date", data.due_date || "");
+
+    if (inputMode === "voice" && data.voice_message) {
+      formData.append("voice_message", data.voice_message);
+    }
+
+    if (data.file) {
+      formData.append("file", data.file);
+    }
+
+    if (editingTask) {
+      formData.append("_method", "PATCH");
+
+      router.post(`${routePrefix}/tasks/${editingTask.id}`, formData, {
+        preserveScroll: true,
+        onSuccess: () => {
+          reset();
+          setEditingTask(null);
+          setOpen(false);
+          setInputMode("text");
+          setValidationErrors({});
+          clearErrors();
+        },
+        onError: (errors) => {
+          console.error("Validation errors:", errors);
+        }
+      });
+      return;
+    }
+
+    router.post(`${routePrefix}/tasks`, formData, {
       preserveScroll: true,
       onSuccess: () => {
-        console.log("File removed successfully");
-        setRemoveFileDialog({ isOpen: false, taskId: null, fileName: "" });
+        reset();
+        setOpen(false);
+        setInputMode("text");
+        setValidationErrors({});
+        clearErrors();
       },
-      onError: (error) => {
-        console.error("Error removing file:", error);
-      },
+      onError: (errors) => {
+        console.error("Validation errors:", errors);
+      }
     });
+  };
+
+  const handleEdit = (task: Task) => {
+    setEditingTask(task);
+    const taskInputMode = task.voice_message ? "voice" : "text";
+    setInputMode(taskInputMode);
+    
+    setData({
+      title: task.title,
+      description: task.description || "",
+      client_key_id: task.client_key_id || "",
+      due_date: task.due_date || "",
+      status: task.status,
+      file: null,
+      voice_message: task.voice_message || "",
+    });
+    setValidationErrors({});
+    setOpen(true);
+  };
+
+  const handleDelete = (taskId: number) => {
+    setTaskToDelete(taskId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (taskToDelete !== null) {
+      router.delete(`${routePrefix}/tasks/${taskToDelete}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+          setDeleteDialogOpen(false);
+          setTaskToDelete(null);
+        },
+      });
+    }
+  };
+
+  const handleView = (task: Task) => {
+    setViewTask(task);
+    setViewDialogOpen(true);
+  };
+
+  const handleDialogClose = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      setEditingTask(null);
+      setInputMode("text");
+      setData("voice_message", "");
+      setValidationErrors({});
+      reset();
+      clearErrors();
+    }
+  };
+
+  const updateTaskStatus = (id: number, status: Task["status"]) => {
+    setOptimisticTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === id ? { ...task, status } : task
+      )
+    );
+
+    router.patch(
+      `${routePrefix}/tasks/${id}`,
+      { status },
+      {
+        preserveScroll: true,
+        only: ['tasks'],
+        onError: () => {
+          setOptimisticTasks(initialTasks);
+        },
+      }
+    );
   };
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {Object.entries(columns).map(([col, config]) => {
-          const Icon = config.icon;
-          const columnTasks = tasks.filter((task) => task.status === col);
-
-          return (
-            <div key={col} className="flex flex-col">
-              {/* Column Header */}
-              <div className="mb-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${config.bgColor}`}>
-                      <Icon className={`h-5 w-5 ${config.color}`} />
-                    </div>
-                    <div>
-                      <h2 className="font-semibold text-lg">{config.title}</h2>
-                      <p className="text-xs text-muted-foreground">
-                        {columnTasks.length}{" "}
-                        {columnTasks.length === 1 ? "task" : "tasks"}
-                      </p>
-                    </div>
-                  </div>
-                  <Badge
-                    variant="secondary"
-                    className={`${config.bgColor} ${config.color} border ${config.borderColor} font-semibold`}
-                  >
-                    {columnTasks.length}
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Droppable Area */}
-              <Droppable droppableId={col}>
-                {(provided, snapshot) => (
-                  <div
-                    className={`flex-1 rounded-xl border-2 p-4 transition-all duration-200 min-h-[600px] ${
-                      snapshot.isDraggingOver
-                        ? `${config.borderColor} ${config.bgColor} border-dashed`
-                        : "border-transparent bg-muted/30"
-                    }`}
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                  >
-                    <div className="space-y-3">
-                      {columnTasks.map((task, index) => (
-                        <Draggable
-                          key={task.id}
-                          draggableId={task.id.toString()}
-                          index={index}
-                        >
-                          {(provided, snapshot) => (
-                            <Card
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className={`group cursor-grab active:cursor-grabbing transition-all duration-200 border-border/50 hover:border-border ${
-                                snapshot.isDragging
-                                  ? "shadow-xl ring-2 ring-primary/50 scale-105 rotate-2"
-                                  : "hover:shadow-md"
-                              }`}
-                            >
-                              <CardContent className="p-4">
-                                <div className="space-y-3">
-                                  {/* Header */}
-                                  <div className="flex items-start gap-2">
-                                    <div
-                                      {...provided.dragHandleProps}
-                                      className="mt-1 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors flex-shrink-0 cursor-grab"
-                                    >
-                                      <GripVertical className="h-4 w-4" />
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                      <h3 className="text-sm font-semibold leading-relaxed break-words mb-2">
-                                        {task.title}
-                                      </h3>
-                                      {task.description && (
-                                        <p className="text-xs text-muted-foreground leading-relaxed break-words line-clamp-2 mb-3">
-                                          {task.description}
-                                        </p>
-                                      )}
-                                      
-                                      {task.due_date && (
-                                        <Badge
-                                          variant="outline"
-                                          className="px-2 py-1 text-xs font-medium"
-                                        >
-                                          Due Date: {
-                                            task.due_date
-                                              ? new Date(task.due_date).toLocaleDateString()
-                                              : "No Due Date"
-                                          }
-                                        </Badge>
-                                      )}
-                                      {/* File/Document Indicator */}
-                                      {task.file && (
-                                        <div className="flex items-center justify-between gap-2 mt-3 p-2 rounded-md bg-muted/50 border border-border/50">
-                                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                                            <div className="flex-shrink-0">
-                                              {isImageFile(task.file) ? (
-                                                <ImageIcon className="h-4 w-4 text-blue-500" />
-                                              ) : (
-                                                <FileText className="h-4 w-4 text-blue-500" />
-                                              )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                              <p className="text-xs text-muted-foreground truncate">
-                                                {task.file.split('/').pop()}
-                                              </p>
-                                            </div>
-                                          </div>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-6 px-2 text-xs flex-shrink-0"
-                                            onClick={(e) => handleViewFile(e, task.file!)}
-                                          >
-                                            <Eye className="h-3 w-3 mr-1" />
-                                            View
-                                          </Button>
-
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-6 px-2 text-xs flex-shrink-0 text-red-500 hover:text-red-600"
-                                            onClick={(e) => handleRemoveFileClick(e, task.id, task.file!)}
-                                          >
-                                            <Trash2 className="h-3 w-3 mr-1" />
-                                            Remove
-                                          </Button>
-                                        </div>
-                                      )}
-                                      
-                                    </div>
-
-                                    {/* Actions Menu */}
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          className="h-7 w-7 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                          <MoreVertical className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem
-                                          onClick={() => onEdit(task)}
-                                        >
-                                          <Pencil className="h-4 w-4 mr-2" />
-                                          Edit Task
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          onClick={() => onDelete(task.id)}
-                                          className="text-red-600 focus:text-red-600"
-                                        >
-                                          <Trash2 className="h-4 w-4 mr-2" />
-                                          Delete Task
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          onClick={() => onView(task.id)}
-                                        >
-                                          <Eye className="h-4 w-4 mr-2" />
-                                          View Details
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </div>
-
-                                
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-
-                    {/* Empty State */}
-                    {columnTasks.length === 0 && (
-                      <div className="flex flex-col items-center justify-center h-40 text-center px-4">
-                        <Icon
-                          className={`h-12 w-12 ${config.color} opacity-20 mb-3`}
-                        />
-                        <p className="text-sm font-medium text-muted-foreground">
-                          No tasks in {config.title.toLowerCase()}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Drag tasks here or create a new one
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </Droppable>
+    <AppLayout>
+      <div className="min-h-screen p-6 md:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Kanban Board</h1>
+              <p className="text-muted-foreground">Organize and track your tasks</p>
             </div>
-          );
-        })}
-      </div>
-
-      {/* View File Dialog */}
-      <Dialog open={viewFileDialog.isOpen} onOpenChange={(isOpen) => setViewFileDialog({ isOpen, file: null, fileName: "" })}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {viewFileDialog.file && isImageFile(viewFileDialog.file) ? (
-                <ImageIcon className="h-5 w-5 text-blue-500" />
-              ) : (
-                <FileText className="h-5 w-5 text-blue-500" />
-              )}
-              {viewFileDialog.fileName}
-            </DialogTitle>
-            <DialogDescription>
-              Preview of the attached file
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="relative w-full h-[60vh] bg-muted/30 rounded-lg overflow-hidden">
-            {viewFileDialog.file && isImageFile(viewFileDialog.file) ? (
-              <img
-                src={`/storage/${viewFileDialog.file}`}
-                alt={viewFileDialog.fileName}
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <iframe
-                src={`/storage/${viewFileDialog.file}`}
-                className="w-full h-full border-0"
-                title={viewFileDialog.fileName}
-              />
-            )}
+            <Dialog open={open} onOpenChange={handleDialogClose}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Task
+                </Button>
+              </DialogTrigger>
+            </Dialog>
           </div>
 
-          <DialogFooter className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (viewFileDialog.file) {
-                  window.open(`/storage/${viewFileDialog.file}`, '_blank');
-                }
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Open in New Tab
-            </Button>
-            <Button
-              variant="default"
-              onClick={() => setViewFileDialog({ isOpen: false, file: null, fileName: "" })}
-            >
-              Close
-            </Button>
-          </DialogFooter>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {columns.map((column) => (
+              <div key={column.id} className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`h-2 w-2 rounded-full ${column.color}`} />
+                    <h3 className="font-semibold">{column.title}</h3>
+                    <span className="text-sm text-muted-foreground">
+                      ({optimisticTasks.filter((t) => t.status === column.id).length})
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 min-h-[200px]">
+                  {optimisticTasks
+                    .filter((task) => task.status === column.id)
+                    .map((task) => (
+                      <div
+                        key={task.id}
+                        className="bg-card border rounded-lg p-4 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-medium flex-1">{task.title}</h4>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleView(task)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEdit(task)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(task.id)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        {task.description && (
+                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                            {task.description}
+                          </p>
+                        )}
+
+                        {task.voice_message && (
+                          <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+                            <Mic className="h-4 w-4" />
+                            <span>Voice message attached</span>
+                          </div>
+                        )}
+
+                        {task.file && (
+                          <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+                            <FileText className="h-4 w-4" />
+                            <span>File attached</span>
+                          </div>
+                        )}
+
+                        {task.due_date && (
+                          <div className="text-xs text-muted-foreground mb-3">
+                            Due: {new Date(task.due_date).toLocaleDateString()}
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                          {column.id !== "todo" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                updateTaskStatus(
+                                  task.id,
+                                  column.id === "in_progress" ? "todo" : "in_progress"
+                                )
+                              }
+                              className="text-xs"
+                            >
+                              ← Move Back
+                            </Button>
+                          )}
+                          {column.id !== "done" && (
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                updateTaskStatus(
+                                  task.id,
+                                  column.id === "todo" ? "in_progress" : "done"
+                                )
+                              }
+                              className="text-xs"
+                            >
+                              Move Forward →
+                            </Button>
+                          )}
+                        </div>
+
+                        {task.client_key_id && (
+                          <div className="mt-3 pt-3 border-t flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {task.client_key_id.substring(0, 8)}...
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={open} onOpenChange={handleDialogClose}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingTask ? "Edit Task" : "Create New Task"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingTask
+                ? "Update the task details below."
+                : "Add a new task to your board. Fill in the details below."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            {!editingTask && (
+              <div className="space-y-3">
+                <Label>Input Method</Label>
+                <RadioGroup
+                  value={inputMode}
+                  onValueChange={(value: "text" | "voice") => {
+                    setInputMode(value);
+                    setValidationErrors({});
+                  }}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="text" id="text" />
+                    <Label htmlFor="text" className="flex items-center gap-2 cursor-pointer">
+                      <FileText className="h-4 w-4" />
+                      Text Input
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="voice" id="voice" />
+                    <Label htmlFor="voice" className="flex items-center gap-2 cursor-pointer">
+                      <Mic className="h-4 w-4" />
+                      Voice Message
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
+
+            {editingTask && (
+              <div className="bg-muted p-3 rounded-md flex items-center gap-2">
+                {inputMode === "voice" ? (
+                  <>
+                    <Mic className="h-4 w-4" />
+                    <span className="text-sm">Editing voice message task</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4" />
+                    <span className="text-sm">Editing text task</span>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="title">
+                Task Title <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="title"
+                value={data.title}
+                onChange={(e) => {
+                  setData("title", e.target.value);
+                  if (validationErrors.title) {
+                    setValidationErrors((prev) => {
+                      const newErrors = { ...prev };
+                      delete newErrors.title;
+                      return newErrors;
+                    });
+                  }
+                }}
+                placeholder="Enter task title"
+                className={errors.title || validationErrors.title ? "border-red-500" : ""}
+              />
+              {(errors.title || validationErrors.title) && (
+                <p className="text-sm text-red-500">{errors.title || validationErrors.title}</p>
+              )}
+            </div>
+
+            {inputMode === "text" ? (
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={data.description}
+                  onChange={(e) => {
+                    setData("description", e.target.value);
+                    if (validationErrors.description) {
+                      setValidationErrors((prev) => {
+                        const newErrors = { ...prev };
+                        delete newErrors.description;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                  placeholder="Describe the task in detail (optional)"
+                  rows={4}
+                  className={errors.description || validationErrors.description ? "border-red-500" : ""}
+                />
+                {(errors.description || validationErrors.description) && (
+                  <p className="text-sm text-red-500">{errors.description || validationErrors.description}</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>
+                  Voice Message {!editingTask && <span className="text-red-500">*</span>}
+                </Label>
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    onClick={isRecording ? stopRecording : startRecording}
+                    variant={isRecording ? "destructive" : "outline"}
+                    className="gap-2"
+                  >
+                    <Mic className="h-4 w-4" />
+                    {isRecording ? "Stop Recording" : "Start Recording"}
+                  </Button>
+                  {data.voice_message && (
+                    <span className="text-sm text-green-600 flex items-center gap-1">
+                      <span className="text-lg">✓</span> Voice message recorded
+                    </span>
+                  )}
+                </div>
+                {isRecording && (
+                  <p className="text-sm text-muted-foreground animate-pulse">Recording in progress...</p>
+                )}
+                {(errors.voice_message || validationErrors.voice_message) && (
+                  <p className="text-sm text-red-500">{errors.voice_message || validationErrors.voice_message}</p>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="due_date">Due Date</Label>
+              <Input
+                id="due_date"
+                type="date"
+                value={data.due_date}
+                onChange={(e) => setData("due_date", e.target.value)}
+                className={errors.due_date ? "border-red-500" : ""}
+              />
+              {errors.due_date && (
+                <p className="text-sm text-red-500">{errors.due_date}</p>
+              )}
+              <p className="text-sm text-gray-500">Optional - select a due date if applicable</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="file">Attach File</Label>
+              <Input
+                id="file"
+                type="file"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) setData("file", file);
+                }}
+              />
+              {errors.file && (
+                <p className="text-sm text-red-500 mt-1">{errors.file}</p>
+              )}
+              <p className="text-sm text-gray-500">Optional - Max 10MB. Allowed: PDF, DOC, DOCX, JPG, PNG</p>
+            </div>
+
+            {auth.user.role === "admin" && (
+              <div className="space-y-2">
+                <Label htmlFor="client">
+                  Assign to Client <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={data.client_key_id}
+                  onValueChange={(value) => {
+                    setData("client_key_id", value);
+                    if (validationErrors.client_key_id) {
+                      setValidationErrors((prev) => {
+                        const newErrors = { ...prev };
+                        delete newErrors.client_key_id;
+                        return newErrors;
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger 
+                    id="client"
+                    className={errors.client_key_id || validationErrors.client_key_id ? "border-red-500" : ""}
+                  >
+                    <SelectValue placeholder="Select a client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.key}>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          {client.key.substring(0, 8)}...
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(errors.client_key_id || validationErrors.client_key_id) && (
+                  <p className="text-sm text-red-500">{errors.client_key_id || validationErrors.client_key_id}</p>
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleDialogClose(false)}
+                disabled={processing}
+              >
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleSubmit} disabled={processing}>
+                {processing
+                  ? editingTask
+                    ? "Updating..."
+                    : "Creating..."
+                  : editingTask
+                  ? "Update Task"
+                  : "Create Task"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Remove File Alert Dialog */}
-      <AlertDialog open={removeFileDialog.isOpen} onOpenChange={(isOpen) => setRemoveFileDialog({ isOpen, taskId: null, fileName: "" })}>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              Remove File
-            </AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove <span className="font-semibold text-foreground">"{removeFileDialog.fileName}"</span>? This action cannot be undone and the file will be permanently deleted from this task.
+              This action cannot be undone. This will permanently delete the task
+              from the system.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setTaskToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmRemoveFile}
-              className="bg-red-500 hover:bg-red-600 text-white" // color added for emphasis
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
-              Remove File
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </DragDropContext>
+
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>Task Details</DialogTitle>
+            <DialogDescription>View the full details of this task.</DialogDescription>
+          </DialogHeader>
+
+          {viewTask ? (
+            <div className="space-y-4 mt-4">
+              <div>
+                <h3 className="text-lg font-semibold">{viewTask.title}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Status:{" "}
+                  <span className="capitalize font-medium">{viewTask.status}</span>
+                </p>
+              </div>
+
+              {viewTask.description && (
+                <div>
+                  <h4 className="font-medium mb-2">Description:</h4>
+                  <p className="text-sm leading-relaxed">{viewTask.description}</p>
+                </div>
+              )}
+
+              {viewTask.voice_message && (
+                <div>
+                  <h4 className="font-medium mb-2">Voice Message:</h4>
+                  <audio controls className="w-full">
+                    <source src={viewTask.voice_message} type="audio/webm" />
+                    Your browser does not support the audio element.
+                  </audio>
+                </div>
+              )}
+
+              {viewTask.file && (
+                <div>
+                  <h4 className="font-medium mb-2">Attached File:</h4>
+                  <a
+                    href={`/storage/${viewTask.file}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {viewTask.file.split("/").pop()}
+                  </a>
+                </div>
+              )}
+
+              <TaskComments
+                taskId={viewTask.id}
+                isAdmin={auth.user.role === "admin"}
+                clientKey={client_key_id}
+                currentUserId={auth.user.id} 
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-4">No task selected.</p>
+          )}
+        </DialogContent>
+      </Dialog>
+    </AppLayout>
   );
 }

@@ -42,6 +42,7 @@ class TaskController extends Controller
             'all_data' => $request->all(),
             'has_file' => $request->hasFile('file'),
             'has_voice' => $request->has('voice_message'),
+            'progress_status' => $request->input('progress_status'),
         ]);
 
         $validated = $request->validate([
@@ -52,15 +53,36 @@ class TaskController extends Controller
             'due_date' => 'nullable|date',
             'status' => 'nullable|in:todo,in_progress,done',
             'file' => 'nullable|file|max:10240', // Max 10MB
+            'progress_status' => 'nullable|in:on_track,at_risk,off_track',
         ]);
 
         $taskData = [
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'status' => $validated['status'] ?? 'todo',
-            'due_date' => $validated['due_date'] ?? null,
             'client_key_id' => $validated['client_key_id'],
+            'progress_status' => $validated['progress_status'] ?? 'on_track',
         ];
+
+        // Handle due_date - use provided date or calculate based on progress_status
+        if (!empty($validated['due_date'])) {
+            $taskData['due_date'] = $validated['due_date'];
+        } elseif (!empty($validated['progress_status'])) {
+            // Calculate due date based on progress status
+            $today = new \DateTime();
+            switch ($validated['progress_status']) {
+                case 'on_track':
+                    $today->modify('+14 days'); // 2 weeks
+                    break;
+                case 'at_risk':
+                    $today->modify('+5 days');
+                    break;
+                case 'off_track':
+                    $today->modify('+2 days');
+                    break;
+            }
+            $taskData['due_date'] = $today->format('Y-m-d');
+        }
 
         // Handle voice message
         if ($request->has('voice_message') && !empty($validated['voice_message'])) {
@@ -81,7 +103,9 @@ class TaskController extends Controller
 
         \Log::info('Admin TaskController Store: Task created successfully', [
             'task_id' => $task->id,
-            'title' => $task->title
+            'title' => $task->title,
+            'due_date' => $task->due_date,
+            'progress_status' => $validated['progress_status'] ?? 'not set'
         ]);
 
         return redirect()->route('admin.tasks.index')
@@ -129,6 +153,7 @@ class TaskController extends Controller
                 'due_date' => 'nullable|date',
                 'status' => 'nullable|in:todo,in_progress,done',
                 'file' => 'nullable|file|max:10240', // Max 10MB
+                 'progress_status' => 'nullable|in:on_track,at_risk,off_track',
             ]);
 
             $updateData = [

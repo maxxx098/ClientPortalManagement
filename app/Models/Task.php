@@ -17,6 +17,7 @@ class Task extends Model
         'due_date',
         'status',
         'voice_message',
+        'progress_status',
         'file',
         'client_key_id',
     ];
