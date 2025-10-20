@@ -10,7 +10,7 @@ import AuthLayout from "@/layouts/auth-layout";
 import { Form, Head } from "@inertiajs/react";
 import { LoaderCircle } from "lucide-react";
 import { useState } from "react";
-
+import Logo from '@/assets/logo/Logo.png'
 interface LoginProps {
   status?: string;
   canResetPassword: boolean;
@@ -53,6 +53,9 @@ export default function Login({ status, canResetPassword }: LoginProps) {
         <div className="flex w-full md:w-1/2 items-center justify-center px-6 sm:px-12 bg-muted/30 p-10 dark:bg-muted/10">
           <div className="w-full max-w-md space-y-8">
             <div className="text-center space-y-2">
+             <div className="flex justify-center m-auto pb-3.5">
+               <img src={Logo} alt="ClientSync Logo" width={40} height={42} className="rounded-md"/>
+             </div>
               <h1 className="text-2xl font-semibold tracking-tight">
                Welcome back to <span className="text-primary">ClientSync</span>
               </h1>
