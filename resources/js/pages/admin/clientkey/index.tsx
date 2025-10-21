@@ -7,7 +7,19 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import AppLayout from '@/layouts/app-layout';
 import { Trash2, Copy, Check, KeyRound, AlertCircle, Plus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
+// Passing types
 interface ClientKey {
   id: number;
   key: string;
@@ -16,7 +28,7 @@ interface ClientKey {
   created_at: string;
 }
 
-
+// Props interface
 interface Props {
   keys: ClientKey[];
 }
@@ -25,23 +37,27 @@ function route(name: string): string {
   const routes: Record<string, string> = {
     "client-keys.store": "/admin/client-keys",
   };
-
   return routes[name] || "/";
 }
 
 export default function ClientKeys({ keys }: Props) {
   const { post, delete: deleteKey, processing } = useForm();
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedKeyId, setSelectedKeyId] = useState<number | null>(null);
+  
+// Generate new key function
+ const generateKey = () => {
+  post(route("client-keys.store"));
+};
 
-  const generateKey = () => {
-    post(route("client-keys.store"));
-  };
-
-  function destroyKey(id: number): void {
-    if (confirm("Are you sure you want to delete this key? This action cannot be undone.")) {
-      deleteKey(route("client-keys.store") + `/${id}`);
-    }
+  // Delete key function
+  function destroyKey() {
+  if (selectedKeyId !== null) {
+    deleteKey(route("client-keys.store") + `/${selectedKeyId}`);
+    setDeleteDialogOpen(false);
   }
+ }
 
   function copyKey(id: number, key: string) {
     navigator.clipboard.writeText(key).then(() => {
@@ -197,15 +213,18 @@ export default function ClientKeys({ keys }: Props) {
                           })}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => destroyKey(key.id)}
-                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            title="Delete key"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedKeyId(key.id);
+                          setDeleteDialogOpen(true);
+                        }}
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Delete key"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -216,6 +235,25 @@ export default function ClientKeys({ keys }: Props) {
           </Card>
         )}
       </div>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The selected client key will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={destroyKey}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

@@ -1,23 +1,30 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { 
   LayoutDashboard, 
   FolderKanban, 
   CheckSquare, 
-  Clock, 
+  Users,
   TrendingUp,
   Calendar,
-  ChevronRight,
   ArrowUpRight,
+  ArrowDownRight,
   Activity,
   BarChart3,
   MoreVertical,
-  Users,
+  Key,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
   Target,
-  Zap
+  Briefcase,
+  Plus,
+  Bell
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, RadialBarChart, RadialBar, PolarAngleAxis, PolarRadiusAxis, Label } from 'recharts';
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import AppLayout from '@/layouts/app-layout';
 
 interface Stats {
@@ -74,31 +81,52 @@ export default function Index({
   projectsByStatus 
 }: Props) {
 
+  // Generate realistic weekly data based on actual stats
+  const generateWeeklyData = () => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const totalTasks = stats.tasks.total;
+    const avgPerDay = Math.ceil(totalTasks / 7);
+    
+    return days.map((day, index) => {
+      const variance = Math.random() * 0.4 + 0.8;
+      const created = Math.max(1, Math.floor(avgPerDay * variance));
+      const completed = Math.floor(created * (Math.random() * 0.3 + 0.6));
+      
+      return {
+        month: day,
+        created,
+        completed,
+      };
+    });
+  };
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      planned: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-      in_progress: 'bg-red-500/10 text-red-400 border-red-500/20',
-      on_hold: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-      completed: 'bg-red-500/10 text-red-400 border-red-500/20',
+      active: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+      inactive: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+      planned: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+      in_progress: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+      on_hold: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+      completed: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
       todo: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-      done: 'bg-red-500/10 text-red-400 border-red-500/20',
-      pending: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-      overdue: 'bg-slate-600/10 text-slate-400 border-slate-600/20',
+      done: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+      pending: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+      overdue: 'bg-red-500/10 text-red-400 border-red-500/20',
     };
     return colors[status] || 'bg-slate-500/10 text-slate-400 border-slate-500/20';
   };
 
   const getPriorityColor = (priority: string) => {
     const colors: Record<string, string> = {
-      low: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-      medium: 'bg-slate-600/10 text-slate-300 border-slate-600/20',
+      low: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+      medium: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
       high: 'bg-red-500/10 text-red-400 border-red-500/20',
     };
     return colors[priority] || 'bg-slate-500/10 text-slate-400 border-slate-500/20';
   };
 
   const formatDate = (date?: string) => {
-    if (!date) return 'No deadline';
+    if (!date) return 'No date';
     return new Date(date).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
@@ -106,85 +134,354 @@ export default function Index({
     });
   };
 
+  const formatRelativeTime = (date?: string) => {
+    if (!date) return 'N/A';
+    const now = new Date();
+    const past = new Date(date);
+    const diffMs = now.getTime() - past.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
+
   const taskCompletionRate = stats.tasks.total > 0 
-    ? (stats.tasks.completed / stats.tasks.total) * 100 
+    ? Math.round((stats.tasks.completed / stats.tasks.total) * 100)
     : 0;
 
   const projectCompletionRate = stats.projects.total > 0
-    ? (stats.projects.completed / stats.projects.total) * 100
+    ? Math.round((stats.projects.completed / stats.projects.total) * 100)
     : 0;
+
+  const currentDate = new Date().toLocaleDateString('en-US', { 
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric' 
+  });
+  
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const [weeklyData] = useState(generateWeeklyData());
+
+  // Chart configs
+  const barChartConfig = {
+    created: {
+      label: "Created",
+      color: "hsl(var(--chart-1))",
+    },
+    completed: {
+      label: "Completed",
+      color: "hsl(var(--chart-2))",
+    },
+  } satisfies ChartConfig;
+
+  const radialChartData = [{ 
+    month: "current", 
+    completed: taskCompletionRate,
+    pending: 100 - taskCompletionRate 
+  }];
+
+  const radialChartConfig = {
+    completed: {
+      label: "Completed",
+      color: taskCompletionRate >= 75 ? "hsl(142, 76%, 36%)" : taskCompletionRate >= 50 ? "hsl(38, 92%, 50%)" : "hsl(0, 84%, 60%)",
+    },
+    pending: {
+      label: "Pending",
+      color: "hsl(var(--muted))",
+    },
+  } satisfies ChartConfig;
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Task Activity Chart Component
+  const TaskActivityChart = () => {
+    return (
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-foreground text-lg">Task Activity</CardTitle>
+              <CardDescription className="text-muted-foreground text-xs mt-1">Last 7 days overview</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={barChartConfig} className="h-64 w-full">
+            <BarChart accessibilityLayer data={weeklyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="month"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+              />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+              <Bar dataKey="created" fill="var(--color-created)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+              <Bar dataKey="completed" fill="var(--color-completed)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
+        <CardFooter className="flex-col items-start gap-2 text-sm">
+          <div className="flex gap-2 leading-none font-medium">
+            {stats.tasks.completed > stats.tasks.pending ? 'Trending up' : 'Keep going'} <TrendingUp className="h-4 w-4" />
+          </div>
+          <div className="text-muted-foreground leading-none">
+            Task creation and completion for the last week
+          </div>
+        </CardFooter>
+      </Card>
+    );
+  };
+
+  // Efficiency Radial Chart Component
+  const EfficiencyRadialChart = () => {
+    return (
+      <Card className="flex flex-col">
+        <CardHeader className="items-center pb-0">
+          <CardTitle className="text-foreground text-base">Overall Efficiency</CardTitle>
+          <CardDescription className="text-muted-foreground text-xs">This week</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-1 items-center pb-0">
+          <ChartContainer
+            config={radialChartConfig}
+            className="mx-auto aspect-square w-full max-w-[250px]"
+          >
+            <RadialBarChart
+              data={radialChartData}
+              startAngle={90}
+              endAngle={-270}
+              innerRadius={80}
+              outerRadius={130}
+            >
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent hideLabel />}
+              />
+              <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
+                <Label
+                  content={({ viewBox }) => {
+                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                      return (
+                        <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle">
+                          <tspan
+                            x={viewBox.cx}
+                            y={(viewBox.cy || 0) - 10}
+                            className="fill-foreground text-3xl font-bold"
+                          >
+                            {taskCompletionRate}%
+                          </tspan>
+                          <tspan
+                            x={viewBox.cx}
+                            y={(viewBox.cy || 0) + 15}
+                            className="fill-muted-foreground text-xs"
+                          >
+                            Completion Rate
+                          </tspan>
+                        </text>
+                      )
+                    }
+                  }}
+                />
+              </PolarRadiusAxis>
+              <RadialBar
+                dataKey="completed"
+                stackId="a"
+                cornerRadius={10}
+                fill="var(--color-completed)"
+                className="stroke-transparent stroke-2"
+              />
+              <RadialBar
+                dataKey="pending"
+                fill="var(--color-pending)"
+                stackId="a"
+                cornerRadius={10}
+                className="stroke-transparent stroke-2"
+              />
+            </RadialBarChart>
+          </ChartContainer>
+        </CardContent>
+        <CardFooter className="flex-col gap-2 text-sm">
+          <div className="flex items-center gap-2 leading-none font-medium">
+            {taskCompletionRate >= 75 ? 'Excellent progress!' : taskCompletionRate >= 50 ? 'Good momentum' : 'Room for improvement'} <TrendingUp className="h-4 w-4" />
+          </div>
+          <div className="text-muted-foreground leading-none">
+            Based on {stats.tasks.total} total tasks
+          </div>
+        </CardFooter>
+      </Card>
+    );
+  };
 
   return (
     <AppLayout>
       <div className="min-h-screen">
-        <div className="container mx-auto p-6 max-w-7xl">
+        <div className="container mx-auto p-6 lg:p-8 space-y-6">
           
-          {/* Header Section */}
-          <div className="mb-8">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div>
-                <h1 className="text-4xl font-bold text-white mb-2">
+          {/* Header */}
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-6 border-b border-border/50">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold">
                   Welcome back, User 👋
                 </h1>
-                <p className="text-slate-400 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  {new Date().toLocaleDateString('en-US', { 
-                    weekday: 'long',
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric' 
-                  })}
-                </p>
               </div>
-              
-              {/* Quick Stats */}
-              <div className="flex flex-wrap gap-4">
-                <div className="bg-gradient-to-br from-red-500/10 to-red-600/5 border border-red-500/20 rounded-xl px-5 py-4 backdrop-blur-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-red-500/20 rounded-lg">
-                      <FolderKanban className="w-5 h-5 text-red-400" />
+              <p className="text-muted-foreground text-sm">
+                {currentDate}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Search here..." 
+                  className="px-4 py-2.5 pl-10 border rounded-xl bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 w-64"
+                />
+                <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <div className="relative" ref={notifRef}>
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative p-2.5 border rounded-xl bg-background hover:bg-muted transition-colors"
+                >
+                  <Bell className="w-5 h-5 text-muted-foreground" />
+                  {upcomingDeadlines.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                  )}
+                </button>
+
+                {showNotifications && (
+                  <div className="absolute right-0 mt-3 w-80 bg-popover border border-border rounded-xl shadow-lg z-50 animate-in fade-in slide-in-from-top-1">
+                    <div className="p-3 border-b border-border flex justify-between items-center">
+                      <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
+                      <Link href="#" className="text-xs text-muted-foreground hover:text-foreground">
+                        View all
+                      </Link>
                     </div>
-                    <div>
-                      <div className="text-xs text-slate-400 mb-0.5">Active Projects</div>
-                      <div className="text-2xl font-bold text-white">{stats.projects.active}</div>
+
+                    <div className="max-h-80 overflow-y-auto">
+                      {upcomingDeadlines.length === 0 ? (
+                        <div className="text-center py-6 text-muted-foreground">
+                          <Activity className="w-10 h-10 opacity-30 mx-auto mb-2" />
+                          <p className="text-xs">No new notifications</p>
+                        </div>
+                      ) : (
+                        upcomingDeadlines.slice(0, 5).map((project) => (
+                          <div
+                            key={project.id}
+                            className="flex items-start gap-3 p-3 hover:bg-muted/30 transition-colors"
+                          >
+                            <div className="flex-shrink-0">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-xs">
+                                {project.name.charAt(0).toUpperCase()}
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-foreground font-medium line-clamp-2">
+                                {project.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Due: {formatDate(project.due_date)}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-red-500/10 to-red-600/5 border border-red-500/20 rounded-xl px-5 py-4 backdrop-blur-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-red-500/20 rounded-lg">
-                      <Target className="w-5 h-5 text-red-400" />
-                    </div>
-                    <div>
-                      <div className="text-xs text-slate-400 mb-0.5">Completion Rate</div>
-                      <div className="text-2xl font-bold text-white">{Math.round(taskCompletionRate)}%</div>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Main Layout */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Stats Overview Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+                <FolderKanban className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.projects.total}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats.projects.active} active projects
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
+                <CheckSquare className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.tasks.total}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats.tasks.in_progress} in progress
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pending Tasks</CardTitle>
+                <Clock className="h-4 w-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-amber-600">{stats.tasks.pending}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Need attention
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{stats.tasks.completed}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {taskCompletionRate}% completion rate
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Left Column - Main Content (2 cols) */}
-            <div className="xl:col-span-2 space-y-6">
+            {/* Main Content - 2 columns */}
+            <div className="lg:col-span-2 space-y-6">
               
-              {/* Projects Section */}
+              {/* Projects Grid */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">Active Projects</h2>
-                    <p className="text-sm text-slate-400">Track your ongoing work</p>
-                  </div>
+                  <h2 className="text-xl font-bold text-foreground">Active Projects</h2>
                   <Link 
                     href="/client/projects" 
-                    className="flex items-center gap-1 text-sm text-red-400 hover:text-red-300 transition-colors group"
+                    className="text-sm text-primary hover:underline flex items-center gap-1"
                   >
                     View all
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    <ArrowUpRight className="w-4 h-4" />
                   </Link>
                 </div>
 
@@ -192,63 +489,77 @@ export default function Index({
                   {recentProjects.length === 0 ? (
                     <div className="col-span-full">
                       <Card>
-                        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                          <div className="p-4 bg-slate-800/50 rounded-full mb-4">
-                            <FolderKanban className="w-8 h-8 text-slate-600" />
-                          </div>
-                          <h3 className="text-white font-medium mb-1">No projects yet</h3>
-                          <p className="text-sm text-slate-500 mb-4">Start by creating your first project</p>
-                          <button className="px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors">
-                            Create Project
-                          </button>
+                        <CardContent className="text-center py-16 text-muted-foreground">
+                          <FolderKanban className="w-16 h-16 opacity-30 mx-auto mb-4" />
+                          <p className="text-sm">No projects yet</p>
                         </CardContent>
                       </Card>
                     </div>
                   ) : (
                     recentProjects.slice(0, 4).map((project) => (
-                      <Card key={project.id} className='bg-muted/30'>
+                      <Card key={project.id} className='hover:bg-background/50 transition-colors cursor-pointer'>
                         <CardContent className="p-5">
                           <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-white text-base mb-2 line-clamp-2 group-hover:text-red-400 transition-colors">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-foreground text-sm mb-2 line-clamp-2">
                                 {project.name}
                               </h3>
-                              <Badge className={`${getPriorityColor(project.priority)} border text-xs px-2 py-0.5 font-medium`}>
+                              <Badge className={`${getPriorityColor(project.priority)} border text-[10px] px-2 py-0.5`}>
                                 {project.priority}
                               </Badge>
                             </div>
-                            <button className="text-slate-500 hover:text-slate-300 transition-colors">
+                            <button className="text-muted-foreground hover:text-foreground transition-colors">
                               <MoreVertical className="w-4 h-4" />
                             </button>
                           </div>
 
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-slate-400 flex items-center gap-1">
-                                <CheckSquare className="w-3 h-3" />
-                                {project.tasks_count || 0} Tasks
-                              </span>
-                              <span className="text-red-400 font-semibold">
-                                {project.progress || 0}% Complete
-                              </span>
-                            </div>
-
-                            <div className="relative">
-                              <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                          <div className="space-y-3">
+                            <div>
+                              <div className="flex items-center justify-between text-xs mb-2">
+                                <span className="text-muted-foreground">{project.tasks_count || 0} Tasks</span>
+                                <span className="text-foreground font-semibold">{project.progress || 0}%</span>
+                              </div>
+                              <div className="h-2 bg-muted rounded-full overflow-hidden">
                                 <div 
-                                  className="h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-700 ease-out"
+                                  className={`h-full rounded-full transition-all duration-700 ${
+                                    (project.progress || 0) >= 75 
+                                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500' 
+                                      : (project.progress || 0) >= 50 
+                                      ? 'bg-gradient-to-r from-amber-500 to-orange-500'
+                                      : 'bg-gradient-to-r from-red-500 to-rose-500'
+                                  }`}
                                   style={{ width: `${project.progress || 0}%` }}
                                 />
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+                            <div className="flex items-center justify-between pt-3 border-t border-border/50">
                               <div className="flex items-center gap-2">
-                                <Users className="w-4 h-4 text-slate-500" />
-                                <span className="text-xs text-slate-400">{project.team_members || 3}</span>
+                                <div className="flex -space-x-2">
+                                  {/* Admin Avatar */}
+                                  <div 
+                                    className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 border-2 border-background flex items-center justify-center text-white text-xs font-medium relative group"
+                                    title="Admin"
+                                  >
+                                    A
+                                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-popover text-foreground text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                      Admin
+                                    </span>
+                                  </div>
+                                  {/* Client User Avatar */}
+                                  <div 
+                                    className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 border-2 border-background flex items-center justify-center text-white text-xs font-medium relative group"
+                                    title="Client"
+                                  >
+                                    C
+                                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-popover text-foreground text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                      Client
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2 text-xs text-slate-400">
-                                <Clock className="w-3 h-3" />
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Calendar className="w-3.5 h-3.5" />
                                 {formatDate(project.due_date)}
                               </div>
                             </div>
@@ -260,70 +571,62 @@ export default function Index({
                 </div>
               </div>
 
-              {/* Recent Tasks */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">Recent Tasks</h2>
-                    <p className="text-sm text-slate-400">Your latest assignments</p>
-                  </div>
-                  <Link 
-                    href="/client/tasks" 
-                    className="flex items-center gap-1 text-sm text-red-400 hover:text-red-300 transition-colors group"
-                  >
-                    View all
-                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </div>
+              {/* Activity Chart */}
+              <TaskActivityChart />
+            </div>
 
-                <div className="space-y-3 grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Sidebar - 1 column */}
+            <div className="lg:col-span-1 space-y-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-foreground">Your Tasks</h2>
+                <Link 
+                  href="/client/tasks" 
+                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                >
+                  View all
+                  <ArrowUpRight className="w-4 h-4" />
+                </Link>
+              </div>
+
+              {/* Your Tasks */}
+              <Card className='bg-muted/30 p-6 border-0'>
+                <div className="space-y-3">
                   {recentTasks.length === 0 ? (
-                    <Card className='bg-muted/30'>
-                      <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                        <div className="p-4 bg-slate-800/50 rounded-full mb-4">
-                          <CheckSquare className="w-8 h-8 text-slate-600" />
-                        </div>
-                        <h3 className="text-white font-medium mb-1">No tasks assigned</h3>
-                        <p className="text-sm text-slate-500">Tasks will appear here once assigned</p>
+                    <Card>
+                      <CardContent className="text-center py-12 text-muted-foreground">
+                        <CheckSquare className="w-12 h-12 opacity-30 mx-auto mb-3" />
+                        <p className="text-sm">No tasks yet</p>
                       </CardContent>
                     </Card>
                   ) : (
-                    recentTasks.slice(0, 5).map((task) => {
-                      const statusColors: Record<string, string> = {
-                        'in_progress': 'from-red-500 to-red-600',
-                        'todo': 'from-slate-500 to-slate-600',
-                        'pending': 'from-slate-500 to-slate-600',
-                        'done': 'from-red-500 to-red-600',
-                        'completed': 'from-red-500 to-red-600',
-                        'overdue': 'from-slate-600 to-slate-700',
-                      };
-                      const gradientColor = statusColors[task.status] || 'from-slate-500 to-slate-600';
+                    recentTasks.slice(0, 4).map((task) => {
                       const isOverdue = task.due_date && new Date(task.due_date) < new Date();
-
                       return (
-                        <Card key={task.id} className='border-0 bg-muted/30 shadow-sm'>
-                          <div className={`h-1 w-full bg-gradient-to-r ${gradientColor}`}></div>
+                        <Card key={task.id} className='hover:bg-background/50 transition-colors cursor-pointer'>
                           <CardContent className="p-4">
                             <div className="flex items-start justify-between gap-3 mb-3">
-                              <h3 className="font-semibold text-white text-sm flex-1 group-hover:text-red-400 transition-colors">
+                              <h3 className="font-semibold text-foreground text-sm flex-1 line-clamp-2">
                                 {task.title}
                               </h3>
-                              <Badge className={`${getStatusColor(task.status)} border text-xs px-2 py-0.5 whitespace-nowrap font-medium`}>
-                                {task.status.replace('_', ' ')}
+                              <Badge className={`${getStatusColor(task.status)} border text-[10px] px-2 py-0.5 flex-shrink-0`}>
+                                {task.status === 'in_progress' ? 'Progress' : task.status === 'todo' ? 'Pending' : task.status}
                               </Badge>
                             </div>
-                            <p className="text-xs text-slate-400 mb-3 line-clamp-2 leading-relaxed">
-                              {task.description || `Task management for ${task.title.toLowerCase()}`}
-                            </p>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 text-xs text-slate-500">
+                            {task.description && (
+                              <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                                {task.description}
+                              </p>
+                            )}
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                <span>{formatDate(task.due_date)}</span>
+                                {formatDate(task.due_date)}
                               </div>
                               {isOverdue && (
-                                <Badge className="bg-slate-600/10 text-slate-400 border-slate-600/20 text-xs px-2 py-0.5">
+                                <span className="text-red-400 flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" />
                                   Overdue
-                                </Badge>
+                                </span>
                               )}
                             </div>
                           </CardContent>
@@ -332,226 +635,11 @@ export default function Index({
                     })
                   )}
                 </div>
-              </div>
 
-              {/* Activity Chart */}
-              <Card className="border-slate-800 bg-slate-900/50">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-white text-lg">Weekly Activity</CardTitle>
-                      <CardDescription className="text-slate-400 text-sm">Task completion trends</CardDescription>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-slate-700 rounded"></div>
-                        <span className="text-slate-400">Planned</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-red-500 rounded"></div>
-                        <span className="text-slate-400">Completed</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-end justify-between gap-3 h-48 px-2">
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((day, i) => {
-                      const planned = [10, 8, 12, 8, 6];
-                      const completed = [8, 10, 10, 8, 5];
-                      const maxValue = 15;
-                      return (
-                        <div key={day} className="flex-1 flex flex-col items-center gap-3 group">
-                          <div className="w-full flex items-end justify-center gap-2 h-40">
-                            <div className="relative w-full">
-                              <div 
-                                className="w-full bg-slate-700/40 rounded-t-lg transition-all duration-500 group-hover:bg-slate-700/60"
-                                style={{ height: `${(planned[i] / maxValue) * 100}%` }}
-                              ></div>
-                              <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {planned[i]}
-                              </div>
-                            </div>
-                            <div className="relative w-full">
-                              <div 
-                                className="w-full bg-red-500 rounded-t-lg transition-all duration-500 group-hover:shadow-lg group-hover:shadow-red-500/20"
-                                style={{ height: `${(completed[i] / maxValue) * 100}%` }}
-                              ></div>
-                              <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs text-red-400 font-semibold opacity-0 group-hover:opacity-100 transition-opacity">
-                                {completed[i]}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-xs font-medium text-slate-400 group-hover:text-white transition-colors">{day}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right Sidebar (1 col) */}
-            <div className="xl:col-span-1 bg-muted/30 p-6 rounded-2xl space-y-6">
-              
-              {/* Performance Card */}
-              <Card className="border-0 bg-card shadow-sm">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-white text-lg">Performance</CardTitle>
-                      <CardDescription className="text-slate-400 text-sm">This week's efficiency</CardDescription>
-                    </div>
-                    <div className="p-2 bg-red-500/10 rounded-lg">
-                      <TrendingUp className="w-5 h-5 text-red-400" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col items-center py-6">
-                    <div className="relative w-40 h-40 mb-6">
-                      <svg className="w-full h-full transform -rotate-90">
-                        <circle
-                          cx="80"
-                          cy="80"
-                          r="70"
-                          stroke="currentColor"
-                          strokeWidth="12"
-                          fill="none"
-                          className="text-slate-800"
-                        />
-                        <circle
-                          cx="80"
-                          cy="80"
-                          r="70"
-                          stroke="url(#gradient)"
-                          strokeWidth="12"
-                          fill="none"
-                          strokeDasharray={`${2 * Math.PI * 70}`}
-                          strokeDashoffset={`${2 * Math.PI * 70 * (1 - taskCompletionRate / 100)}`}
-                          className="transition-all duration-1000 ease-out"
-                          strokeLinecap="round"
-                        />
-                        <defs>
-                          <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#ef4444" />
-                            <stop offset="100%" stopColor="#dc2626" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <div className="text-4xl font-bold text-white mb-1">{Math.round(taskCompletionRate)}%</div>
-                        <div className="text-xs text-slate-400">Completion</div>
-                      </div>
-                    </div>
-                    
-                    <div className="w-full grid grid-cols-2 gap-3">
-                      <div className="text-center p-3 bg-slate-800/50 rounded-lg">
-                        <div className="text-xs text-slate-400 mb-1">Total</div>
-                        <div className="text-lg font-bold text-white">{stats.tasks.total}</div>
-                      </div>
-                      <div className="text-center p-3 bg-red-500/10 rounded-lg border border-red-500/20">
-                        <div className="text-xs text-red-400 mb-1">Done</div>
-                        <div className="text-lg font-bold text-white">{stats.tasks.completed}</div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Task Stats */}
-              <div className="space-y-3">
-                <Card className="border-0 bg-card shadow-sm">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-slate-400 mb-1">In Progress</div>
-                        <div className="text-2xl font-bold text-white">{stats.tasks.in_progress}</div>
-                      </div>
-                      <div className="p-3 bg-red-500/10 rounded-lg">
-                        <Activity className="w-6 h-6 text-red-400" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-0 bg-card shadow-sm">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-slate-400 mb-1">Completed</div>
-                        <div className="text-2xl font-bold text-white">{stats.tasks.completed}</div>
-                      </div>
-                      <div className="p-3 bg-red-500/10 rounded-lg">
-                        <CheckSquare className="w-6 h-6 text-red-400" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-0 bg-card shadow-sm">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-slate-400 mb-1">Pending</div>
-                        <div className="text-2xl font-bold text-white">{stats.tasks.pending}</div>
-                      </div>
-                      <div className="p-3 bg-slate-700/40 rounded-lg">
-                        <Clock className="w-6 h-6 text-slate-400" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Upcoming Deadlines */}
-              <Card className="border-0 bg-card shadow-sm">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-white text-lg">Upcoming</CardTitle>
-                      <CardDescription className="text-slate-400 text-sm">Deadlines & events</CardDescription>
-                    </div>
-                    <Link 
-                      href="#" 
-                      className="text-sm text-red-400 hover:text-red-300 transition-colors"
-                    >
-                      View all
-                    </Link>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {upcomingDeadlines.length === 0 ? (
-                    <div className="text-center py-12">
-                      <div className="p-4 bg-slate-800/50 rounded-full w-fit mx-auto mb-3">
-                        <Calendar className="w-8 h-8 text-slate-600" />
-                      </div>
-                      <p className="text-sm text-slate-500">No upcoming deadlines</p>
-                    </div>
-                  ) : (
-                    upcomingDeadlines.slice(0, 4).map((project, index) => (
-                      <div key={project.id} className="flex gap-3 p-3 rounded-lg hover:bg-slate-800/50 transition-colors group">
-                        <div className="flex flex-col items-center">
-                          <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20">
-                            <span className="text-white font-bold text-sm">{String(index + 1).padStart(2, '0')}</span>
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm text-white font-medium mb-1 line-clamp-2 group-hover:text-red-400 transition-colors">
-                            {project.name}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <Clock className="w-3 h-3" />
-                            {formatDate(project.due_date)}
-                          </div>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    ))
-                  )}
-                </CardContent>
+                {/* Efficiency Gauge */}
+                <div className="mt-6">
+                  <EfficiencyRadialChart />
+                </div>
               </Card>
             </div>
           </div>

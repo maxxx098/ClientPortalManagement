@@ -21,6 +21,7 @@ interface Task {
   description?: string;
   status: "todo" | "in_progress" | "done";
   progress_status?: "on_track" | "at_risk" | "off_track";
+  priority: string;
   client_key_id?: string;
   file?: string | null;
   voice_message?: string | null;
