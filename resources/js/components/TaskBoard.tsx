@@ -43,7 +43,7 @@ interface TaskBoardProps {
   onView: (taskId: number) => void;
   onEdit: (task: Task) => void;
   onDelete: (taskId: number) => void;
-  onUpdateStatus: (id: number, status: Task["status"]) => void;
+  onUpdateStatus: (taskId: number, status: Task["status"]) => void;
 }
 
 const statusConfig = {

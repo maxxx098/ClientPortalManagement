@@ -8,6 +8,8 @@ import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { SidebarInset } from '@/components/ui/sidebar';
+import { Card } from "@/components/ui/card";
+import { router } from "@inertiajs/react";
 
 // ============================================================================
 // TYPES
@@ -120,12 +122,30 @@ export default function Index({
     }, 500);
   };
 
-  const updateTaskStatus = (id: number, status: Task["status"]) => {
-    setOptimisticTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === id ? { ...task, status } : task
-      )
-    );
+const handleUpdateStatus = (taskId: number, status: Task["status"]) => {
+  // Optimistically update the UI immediately
+  setOptimisticTasks(prev => 
+    prev.map(task => 
+      task.id === taskId ? { ...task, status } : task
+    )
+  );
+
+  // Save to the database 
+    const formData = new FormData();
+    formData.append("status", status);
+    formData.append("_method", "PATCH");
+
+    router.post(`${routePrefix}/tasks/${taskId}`, formData, {
+      preserveScroll: true,
+      onSuccess: () => {
+        console.log('Status updated successfully');
+      },
+      onError: (errors) => {
+        console.error('Failed to update status:', errors);
+        // Revert the optimistic update
+        setOptimisticTasks(initialTasks);
+      }
+    });
   };
 
   const closeSidebar = () => {
@@ -155,10 +175,10 @@ export default function Index({
           onView={handleView}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          onUpdateStatus={updateTaskStatus}
+          onUpdateStatus={handleUpdateStatus}
         />
 
-        {/* Sidebar - Fixed positioning */}
+        {/* Sidebar */}
         <div
           className={`fixed right-0 top-0 h-full w-96 transform transition-transform duration-300 ease-linear z-[100] ${
             sidebarOpen ? "translate-x-0" : "translate-x-full"
@@ -181,7 +201,7 @@ export default function Index({
         {deleteDialogOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteDialogOpen(false)} />
-            <div className="bg-slate-950 border border-slate-800 rounded-lg p-6 max-w-sm relative z-10 space-y-4">
+            <Card className=" border rounded-lg p-6 max-w-sm relative z-10 space-y-4">
               <h3 className="text-lg font-semibold text-white">Delete Task?</h3>
               <p className="text-gray-400 text-sm">This action cannot be undone. The task will be permanently deleted.</p>
               <div className="flex gap-3 justify-end">
@@ -200,7 +220,7 @@ export default function Index({
                   {isProcessing ? "Deleting..." : "Delete"}
                 </Button>
               </div>
-            </div>
+            </Card>
           </div>
         )}
       </SidebarInset>

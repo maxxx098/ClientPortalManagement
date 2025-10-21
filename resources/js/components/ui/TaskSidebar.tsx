@@ -354,7 +354,7 @@ export default function TaskSidebar({
               Assign to Client {!isViewMode && <span className="text-red-500">*</span>}
             </Label>
             <Select value={data.client_key_id || ""} onValueChange={(val) => setData("client_key_id", val)} disabled={isViewMode}>
-              <SelectTrigger id="client" className={`bg-slate-800 border-slate-700 text-white ${errors.client_key_id ? "border-red-500" : ""}`}>
+              <SelectTrigger id="client" className={`text-white ${errors.client_key_id ? "border-red-500" : ""}`}>
                 <SelectValue placeholder="Select a client" />
               </SelectTrigger>
               <SelectContent className="">
@@ -381,7 +381,7 @@ export default function TaskSidebar({
               type="file"
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
               onChange={(e) => setData("file", e.target.files?.[0] || null)}
-              className="bg-slate-800 border-slate-700 text-gray-400"
+              className="text-gray-400"
             />
             <p className="text-xs text-slate-500">Max 10MB. PDF, DOC, DOCX, JPG, PNG</p>
           </div>
