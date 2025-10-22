@@ -23,7 +23,8 @@ import {
   CheckCircle2,
   Image,
   Plus,
-  ListTodo
+  ListTodo,
+  PenBox
 } from "lucide-react"
 import { useState } from "react"
 import {
@@ -40,6 +41,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { AppSidebarHeader } from "@/components/app-sidebar-header"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { AppShell } from "@/components/app-shell"
+import Edit from "./edit"
 
 interface Task {
   id: number
@@ -204,8 +206,8 @@ export default function Show({ project, tasks = [], isAdmin = false }: Props) {
   const inProgressTasks = tasks.filter(t => t.status === "in_progress")
   const doneTasks = tasks.filter(t => t.status === "done")
   
-  const handleEdit = (task: Task) => {
-    setSelectedTask(task);
+  const handleEdit = (task?: Task | null) => {
+    setSelectedTask(task || null);
     setSidebarMode("edit");
     setTaskSidebarOpen(true);
   };
@@ -402,6 +404,7 @@ export default function Show({ project, tasks = [], isAdmin = false }: Props) {
                         <ListTodo className="w-12 h-12 opacity-30 mx-auto mb-3" />
                         <p className="text-sm">No tasks yet</p>
                         {isAdmin && (
+                         <div>
                           <Button
                             variant="outline"
                             size="sm"
@@ -411,6 +414,8 @@ export default function Show({ project, tasks = [], isAdmin = false }: Props) {
                             <Plus className="h-4 w-4" />
                             Create First Task
                           </Button>
+                         </div>
+                          
                         )}
                       </div>
                     ) : (
@@ -440,6 +445,13 @@ export default function Show({ project, tasks = [], isAdmin = false }: Props) {
                                     <Badge variant="outline" className={taskStatusColor(task.status)}>
                                       To Do
                                     </Badge>
+                                    <Button variant="outline" size="sm" onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEdit(task);
+                                    }} className="gap-2">
+                                      <PenBox size={14} />
+                                      Edit
+                                    </Button>
                                   </div>
                                 </div>
                               ))}
@@ -453,29 +465,49 @@ export default function Show({ project, tasks = [], isAdmin = false }: Props) {
                             <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                               In Progress ({inProgressTasks.length})
                             </h4>
-                            <div className="space-y-2">
-                              {inProgressTasks.map((task) => (
-                                <div
-                                  key={task.id}
-                                  onClick={() => handleViewTask(task)}
-                                  className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border border-border/50"
-                                >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="flex-1">
-                                      <p className="font-medium text-sm">{task.title}</p>
-                                      {task.due_date && (
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                          Due: {formatDate(task.due_date)}
-                                        </p>
-                                      )}
+                              <div className="space-y-2">
+                                {inProgressTasks.map((task) => (
+                                  <div
+                                    key={task.id}
+                                    onClick={() => handleViewTask(task)}
+                                    className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border border-border/50"
+                                  >
+                                    <div className="flex items-center justify-between gap-3">
+                                      {/* Left side: title + due date */}
+                                      <div className="flex-1">
+                                        <p className="font-medium text-sm">{task.title}</p>
+                                        {task.due_date && (
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            Due: {formatDate(task.due_date)}
+                                          </p>
+                                        )}
+                                      </div>
+
+                                      {/* Center: status badge */}
+                                      <Badge
+                                        variant="outline"
+                                        className={taskStatusColor(task.status)}
+                                      >
+                                        In Progress
+                                      </Badge>
+
+                                      {/* Right side: Edit button */}
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEdit(task);
+                                        }}
+                                        className="gap-2"
+                                      >
+                                        <PenBox size={14} />
+                                        Edit
+                                      </Button>
                                     </div>
-                                    <Badge variant="outline" className={taskStatusColor(task.status)}>
-                                      In Progress
-                                    </Badge>
                                   </div>
-                                </div>
-                              ))}
-                            </div>
+                                ))}
+                              </div>
                           </div>
                         )}
 
@@ -504,6 +536,13 @@ export default function Show({ project, tasks = [], isAdmin = false }: Props) {
                                     <Badge variant="outline" className={taskStatusColor(task.status)}>
                                       Done
                                     </Badge>
+                                    <Button variant="outline" size="sm" onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEdit(task);
+                                    }} className="gap-2">
+                                      <PenBox size={14} />
+                                      Edit
+                                    </Button>
                                   </div>
                                 </div>
                               ))}
@@ -726,7 +765,6 @@ export default function Show({ project, tasks = [], isAdmin = false }: Props) {
             isAdmin={isAdmin}
             clientKey={project.client_key_id}
             routePrefix="/admin"
-            onEdit={handleEdit}
           />
         </div>
       </div>
