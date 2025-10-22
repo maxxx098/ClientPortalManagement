@@ -183,15 +183,12 @@ export default function TaskSidebar({
       });
     }
   };
-
-  const handleDelete = () => {
+ 
+  // delete handler
+ const handleDelete = () => {
     if (task) {
-      router.delete(`${routePrefix}/tasks/${task.id}`, {
-        preserveScroll: true,
-        onSuccess: () => {
-          onClose();
-        },
-      });
+      onDelete(task.id); // Use the prop instead of router.delete directly
+      // onClose(); will be called from parent after successful deletion
     }
   };
 
@@ -428,4 +425,8 @@ export default function TaskSidebar({
       </div>
     </div>
   );
+}
+
+function onDelete(id: number) {
+  throw new Error("Function not implemented.");
 }

@@ -13,8 +13,18 @@ import {
   FolderKanban,
   Users,
   TrendingUp,
-  MoreVertical
+  MoreVertical,
+  CheckCircle2,
+  Circle
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import projects from "@/routes/admin/projects"
 
 interface Project {
   id: number
@@ -29,7 +39,7 @@ interface Project {
 }
 
 export default function Index() {
-  const { projects } = usePage().props as unknown as { projects: Project[] }
+  const { projects: projectList } = usePage().props as unknown as { projects: Project[] }
   const [open, setOpen] = useState(false)
 
   const priorityColor = (priority: string) => {
@@ -79,6 +89,41 @@ export default function Index() {
     router.visit(`/admin/projects/${projectId}`)
   }
 
+  const handleStatusChange = (projectId: number, newStatus: string) => {
+    router.put(
+      projects.update.url({ project: projectId }),
+      { status: newStatus, _method: "PUT" },
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          // Optional: Show success message
+        },
+      }
+    )
+  }
+
+  const handleMarkAsCompleted = (projectId: number) => {
+    handleStatusChange(projectId, "completed")
+  }
+
+  const handleMarkAsInProgress = (projectId: number) => {
+    handleStatusChange(projectId, "in_progress")
+  }
+
+  const handleEdit = (projectId: number) => {
+    router.visit(projects.edit.url({ project: projectId }))
+  }
+
+  const handleDelete = (projectId: number) => {
+    if (confirm("Are you sure you want to delete this project?")) {
+      router.delete(projects.destroy.url({ project: projectId }), {
+        onSuccess: () => {
+          // Optional: Show success message
+        },
+      })
+    }
+  }
+
   return (
     <AppLayout>
       <Head title="Projects" />
@@ -110,7 +155,7 @@ export default function Index() {
                 <FolderKanban className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{projects.length}</div>
+                <div className="text-2xl font-bold">{projectList.length}</div>
                 <p className="text-xs text-muted-foreground mt-1">
                   All projects
                 </p>
@@ -124,7 +169,7 @@ export default function Index() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-amber-600">
-                  {projects.filter(p => p.status === 'in_progress').length}
+                  {projectList.filter(p => p.status === 'in_progress').length}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   In progress
@@ -139,7 +184,7 @@ export default function Index() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-emerald-600">
-                  {projects.filter(p => p.status === 'completed').length}
+                  {projectList.filter(p => p.status === 'completed').length}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Successfully finished
@@ -154,7 +199,7 @@ export default function Index() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-blue-600">
-                  {projects.filter(p => p.status === 'planned').length}
+                  {projectList.filter(p => p.status === 'planned').length}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Upcoming projects
@@ -165,7 +210,7 @@ export default function Index() {
 
           {/* Project Cards Grid */}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.length === 0 ? (
+            {projectList.length === 0 ? (
               <div className="col-span-full">
                 <Card>
                   <CardContent className="text-center py-16 text-muted-foreground">
@@ -179,15 +224,18 @@ export default function Index() {
                 </Card>
               </div>
             ) : (
-              projects.map((project) => (
+              projectList.map((project) => (
                 <Card
                   key={project.id}
-                  className="hover:bg-background/50 transition-all cursor-pointer group"
+                  className="hover:bg-background/50 transition-all group"
                 >
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground text-base mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                        <h3 
+                          className="font-semibold text-foreground text-base mb-2 line-clamp-2 group-hover:text-primary transition-colors cursor-pointer"
+                          onClick={() => handleViewDetails(project.id)}
+                        >
                           {project.name}
                         </h3>
                         <div className="flex items-center gap-2 flex-wrap">
@@ -199,9 +247,65 @@ export default function Index() {
                           </Badge>
                         </div>
                       </div>
-                      <button className="text-muted-foreground hover:text-foreground transition-colors">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
+                      
+                      {/* Dropdown Menu */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="text-muted-foreground hover:text-foreground transition-colors">
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => handleViewDetails(project.id)}>
+                            <ArrowRight className="w-4 h-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEdit(project.id)}>
+                            <svg 
+                              className="w-4 h-4 mr-2" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Edit Project
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {project.status !== "completed" ? (
+                            <DropdownMenuItem 
+                              onClick={() => handleMarkAsCompleted(project.id)}
+                              className="text-emerald-600"
+                            >
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                              Mark as Completed
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem 
+                              onClick={() => handleMarkAsInProgress(project.id)}
+                              className="text-amber-600"
+                            >
+                              <Circle className="w-4 h-4 mr-2" />
+                              Mark as In Progress
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => handleDelete(project.id)}
+                            className="text-red-600"
+                          >
+                            <svg 
+                              className="w-4 h-4 mr-2" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete Project
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
 
                     {/* Description */}

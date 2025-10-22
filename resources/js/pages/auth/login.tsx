@@ -39,13 +39,13 @@ export default function Login({ status, canResetPassword }: LoginProps) {
 
             {/* Text content */}
             <div className="relative z-10 flex flex-col justify-end p-10 text-white">
-                <p className="text-lg font-medium leading-snug max-w-md">
-                “Simply all the tools that my team and I need.”
-                </p>
-                <p className="mt-2 text-sm text-gray-300">
-                Karen Yue <br />
-                Director of Digital Marketing Technology
-                </p>
+              <p className="text-lg font-medium leading-snug max-w-md">
+                “Simply all the tools I need to manage clients and projects with ease.”
+              </p>
+              <p className="mt-2 text-sm text-gray-300">
+                Symon Falcatan <br />
+                CEO, SymVibe Web Development
+              </p>
             </div>
             </div>
 

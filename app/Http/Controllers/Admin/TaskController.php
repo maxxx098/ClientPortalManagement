@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\ClientKey;
+use App\Models\Project;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -108,6 +109,12 @@ class TaskController extends Controller
             'progress_status' => $validated['progress_status'] ?? 'not set'
         ]);
 
+        // Check if there's a referrer to go back to (e.g., project page)
+        $referer = $request->headers->get('referer');
+        if ($referer && strpos($referer, '/projects/') !== false) {
+            return back()->with('success', 'Task created successfully.');
+        }
+
         return redirect()->route('admin.tasks.index')
             ->with('success', 'Task created successfully.');
     }
@@ -153,7 +160,7 @@ class TaskController extends Controller
                 'due_date' => 'nullable|date',
                 'status' => 'nullable|in:todo,in_progress,done',
                 'file' => 'nullable|file|max:10240', // Max 10MB
-                 'progress_status' => 'nullable|in:on_track,at_risk,off_track',
+                'progress_status' => 'nullable|in:on_track,at_risk,off_track',
             ]);
 
             $updateData = [
@@ -182,6 +189,12 @@ class TaskController extends Controller
                 'title' => $task->title
             ]);
 
+            // Check if there's a referrer to go back to (e.g., project page)
+            $referer = $request->headers->get('referer');
+            if ($referer && strpos($referer, '/projects/') !== false) {
+                return back()->with('success', 'Task updated successfully.');
+            }
+
             return redirect()->route('admin.tasks.index')
                 ->with('success', 'Task updated successfully.');
         }
@@ -192,14 +205,18 @@ class TaskController extends Controller
      */
     public function destroy(Task $task)
     {
-        // Admins can delete any task, no authorization check needed
+        // Delete associated file if exists
+        if ($task->file) {
+            \Storage::disk('public')->delete($task->file);
+        }
+
         $task->delete();
 
-        return redirect()->back()->with('success', 'Task deleted successfully.');
+        return back()->with('success', 'Task deleted successfully.');
     }
 
     /**
-     * remove the attached file from the specified task
+     * Remove the attached file from the specified task
      */
     public function removeFile(Task $task)
     {

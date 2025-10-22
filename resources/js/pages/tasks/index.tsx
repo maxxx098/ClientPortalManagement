@@ -100,19 +100,31 @@ export default function Index({
     setDeleteDialogOpen(true);
   };
 
+  // delete confirmation
   const confirmDelete = () => {
     if (taskToDelete !== null) {
       setIsProcessing(true);
-      setTimeout(() => {
-        setOptimisticTasks(prev => prev.filter(t => t.id !== taskToDelete));
-        setDeleteDialogOpen(false);
-        setTaskToDelete(null);
-        setIsProcessing(false);
-        setSidebarOpen(false);
-      }, 500);
+      
+      setOptimisticTasks(prev => prev.filter(task => task.id !== taskToDelete));
+      
+      router.delete(`${routePrefix}/tasks/${taskToDelete}`, {
+        preserveScroll: true,
+        preserveState: true,
+        onSuccess: () => {
+          setDeleteDialogOpen(false);
+          setTaskToDelete(null);
+          setIsProcessing(false);
+          setSidebarOpen(false);
+        },
+        onError: (errors) => {
+          console.error('Failed to delete task:', errors);
+
+          setOptimisticTasks(initialTasks);
+          setIsProcessing(false);
+        }
+      });
     }
   };
-
   const handleSave = (formData: FormData) => {
     setIsProcessing(true);
     setTimeout(() => {

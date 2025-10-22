@@ -10,22 +10,52 @@ class Project extends Model
     use HasFactory;
 
     protected $fillable = [
-        'client_key_id',
         'name',
         'description',
         'status',
-        'file',
+        'priority',
         'start_date',
         'due_date',
-        'priority',
+        'file',
+        'client_key_id',
     ];
 
+    protected $casts = [
+        'start_date' => 'date',
+        'due_date' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    /**
+     * Get the client key that owns the project.
+     */
     public function clientKey()
     {
-        return $this->belongsTo(ClientKey::class);
+        return $this->belongsTo(ClientKey::class, 'client_key_id', 'key');
     }
-     public function tasks()
+
+    /**
+     * Get all tasks associated with this project via client_key_id.
+     */
+    public function tasks()
     {
-        return $this->hasMany(Task::class);
+        return $this->hasMany(Task::class, 'client_key_id', 'client_key_id');
+    }
+
+    /**
+     * Calculate progress based on completed tasks.
+     */
+    public function getProgressAttribute()
+    {
+        $totalTasks = $this->tasks()->count();
+        
+        if ($totalTasks === 0) {
+            return 0;
+        }
+
+        $completedTasks = $this->tasks()->where('status', 'done')->count();
+        
+        return round(($completedTasks / $totalTasks) * 100);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
+use App\Models\Task;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -15,8 +16,17 @@ class ProjectController extends Controller
     public function index(Request $request)
     {
         $projects = Project::with('clientKey:key,id')
+            ->withCount('tasks')
             ->latest()
-            ->get();
+            ->get()
+            ->map(function ($project) {
+                // Calculate progress based on completed tasks
+                $totalTasks = $project->tasks()->count();
+                $completedTasks = $project->tasks()->where('status', 'done')->count();
+                $project->progress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
+                $project->tasks_count = $totalTasks;
+                return $project;
+            });
 
         return Inertia::render('admin/projects/index', [
             'projects' => $projects,
@@ -29,8 +39,23 @@ class ProjectController extends Controller
      */
     public function show(Request $request, Project $project)
     {
+        // Load tasks related to this project via client_key_id
+        $tasks = Task::where('client_key_id', $project->client_key_id)
+            ->with('clientKey:id,key')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Calculate progress based on completed tasks
+        $totalTasks = $tasks->count();
+        $completedTasks = $tasks->where('status', 'done')->count();
+        $progress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
+
+        $project->tasks_count = $totalTasks;
+        $project->progress = $progress;
+
         return Inertia::render('admin/projects/show', [
             'project' => $project,
+            'tasks' => $tasks,
             'isAdmin' => true,
         ]);
     }
@@ -63,7 +88,7 @@ class ProjectController extends Controller
 
         if ($request->hasFile('file')) {
             $path = $request->file('file')->store('project_files', 'public');
-            $validated['file'] = $path;
+            $validated['file'] = '/storage/' . $path;
         }
 
         Project::create($validated);
@@ -77,6 +102,18 @@ class ProjectController extends Controller
      */
     public function update(Request $request, Project $project)
     {
+        // Check if only status is being updated (quick status change)
+        if ($request->has('status') && count($request->all()) <= 2) {
+            $validated = $request->validate([
+                'status' => ['required', 'in:planned,in_progress,on_hold,completed'],
+            ]);
+
+            $project->update($validated);
+
+            return back()->with('success', 'Project status updated successfully.');
+        }
+
+        // Full project update
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -91,10 +128,11 @@ class ProjectController extends Controller
         if ($request->hasFile('file')) {
             // Delete old file if exists
             if ($project->file) {
-                \Storage::disk('public')->delete($project->file);
+                $oldPath = str_replace('/storage/', '', $project->file);
+                \Storage::disk('public')->delete($oldPath);
             }
             $path = $request->file('file')->store('project_files', 'public');
-            $validated['file'] = $path;
+            $validated['file'] = '/storage/' . $path;
         }
 
         $project->update($validated);
@@ -108,9 +146,29 @@ class ProjectController extends Controller
      */
     public function destroy(Request $request, Project $project)
     {
+        // Delete associated file if exists
+        if ($project->file) {
+            $filePath = str_replace('/storage/', '', $project->file);
+            \Storage::disk('public')->delete($filePath);
+        }
+
         $project->delete();
 
         return redirect()->route('admin.projects.index')
             ->with('success', 'Project deleted successfully.');
+    }
+
+    /**
+     * Quick status toggle for projects.
+     */
+    public function toggleStatus(Request $request, Project $project)
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'in:planned,in_progress,on_hold,completed'],
+        ]);
+
+        $project->update(['status' => $validated['status']]);
+
+        return back()->with('success', 'Project status updated to ' . $validated['status']);
     }
 }
