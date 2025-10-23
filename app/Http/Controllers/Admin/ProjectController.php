@@ -13,26 +13,32 @@ class ProjectController extends Controller
     /**
      * Display a listing of ALL projects (Admin only).
      */
-    public function index(Request $request)
-    {
-        $projects = Project::with('clientKey:key,id')
-            ->withCount('tasks')
-            ->latest()
-            ->get()
-            ->map(function ($project) {
-                // Calculate progress based on completed tasks
-                $totalTasks = $project->tasks()->count();
-                $completedTasks = $project->tasks()->where('status', 'done')->count();
-                $project->progress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
-                $project->tasks_count = $totalTasks;
-                return $project;
-            });
+        public function index(Request $request)
+        {
+            $projects = Project::with('clientKey:key,id')
+                ->withCount('tasks')
+                ->latest()
+                ->get()
+                ->map(function ($project) {
+                    $totalTasks = $project->tasks()->count();
+                    $completedTasks = $project->tasks()->where('status', 'done')->count();
+                    $project->progress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
+                    $project->tasks_count = $totalTasks;
+                    return $project;
+                });
 
-        return Inertia::render('admin/projects/index', [
-            'projects' => $projects,
-            'isAdmin' => true,
-        ]);
-    }
+            // Get client keys that don't have projects yet
+            $usedClientKeyIds = Project::pluck('client_key_id')->toArray();
+            $availableClientKeys = \App\Models\ClientKey::whereNotIn('key', $usedClientKeyIds)
+                ->select('id', 'key')
+                ->get();
+
+            return Inertia::render('admin/projects/index', [
+                'projects' => $projects,
+                'availableClientKeys' => $availableClientKeys,
+                'isAdmin' => true,
+            ]);
+        }
 
     /**
      * Show a single project (Admin can view any project).

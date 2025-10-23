@@ -25,6 +25,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import projects from "@/routes/admin/projects"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface Project {
   id: number
@@ -36,12 +46,10 @@ interface Project {
   due_date: string
   progress?: number
   tasks_count?: number
+
 }
 
 export default function Index() {
-  const { projects: projectList } = usePage().props as unknown as { projects: Project[] }
-  const [open, setOpen] = useState(false)
-
   const priorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case "high":
@@ -114,15 +122,41 @@ export default function Index() {
     router.visit(projects.edit.url({ project: projectId }))
   }
 
-  const handleDelete = (projectId: number) => {
-    if (confirm("Are you sure you want to delete this project?")) {
-      router.delete(projects.destroy.url({ project: projectId }), {
-        onSuccess: () => {
-          // Optional: Show success message
-        },
-      })
-    }
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
+
+  // Called from the UI to request deletion (opens the alert dialog)
+  const handleDelete = (project: Project) => {
+    setProjectToDelete(project)
+    setDeleteDialogOpen(true)
   }
+
+  // Called when user confirms deletion in the dialog
+  const confirmDelete = () => {
+    if (projectToDelete === null) return
+    router.delete(projects.destroy.url({ project: projectToDelete.id }), {
+      onSuccess: () => {
+        setDeleteDialogOpen(false)
+        setProjectToDelete(null)
+        // Optional: show success toast / message
+      },
+      onError: () => {
+        // Optional: handle error
+      },
+    })
+  }
+
+  // Called when user cancels the dialog
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false)
+    setProjectToDelete(null)
+  }
+
+  const { projects: projectList, availableClientKeys } = usePage().props as unknown as { 
+    projects: Project[] 
+    availableClientKeys: {id: number, key: string}[]
+  }
+  const [open, setOpen] = useState(false)
 
   return (
     <AppLayout>
@@ -291,7 +325,7 @@ export default function Index() {
                           )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
-                            onClick={() => handleDelete(project.id)}
+                            onClick={() => handleDelete(project)}
                             className="text-red-600"
                           >
                             <svg 
@@ -384,7 +418,32 @@ export default function Index() {
       </div>
 
       {/* Modal */}
-      <CreateProjectModal open={open} setOpen={setOpen} />
+       <CreateProjectModal 
+        open={open} 
+        setOpen={setOpen} 
+        availableClientKeys={availableClientKeys} 
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the project "{projectToDelete?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   )
 }

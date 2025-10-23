@@ -19,16 +19,14 @@ import {
 } from "@/components/ui/select"
 
 import projects from "@/routes/admin/projects"
-import axios from "axios";
 
 interface Props {
   open: boolean
   setOpen: (open: boolean) => void
+  availableClientKeys: {id: number, key: string}[]
 }
 
-export default function CreateProjectModal({ open, setOpen }: Props) {
-const [keys, setKeys] = useState<{id: number, key: string}[]>([]);
-
+export default function CreateProjectModal({ open, setOpen, availableClientKeys }: Props) {
   const { data, setData, post, processing, reset, errors } = useForm({
     client_key_id: "",
     name: "",
@@ -40,13 +38,7 @@ const [keys, setKeys] = useState<{id: number, key: string}[]>([]);
     priority: "medium",
   });
 
-  useEffect(() => {
-    axios.get("/admin/client-keys/list").then(res => {
-      setKeys(res.data);
-    });
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     post(projects.store.url(), {
       onSuccess: () => {
@@ -75,11 +67,10 @@ const [keys, setKeys] = useState<{id: number, key: string}[]>([]);
                 <SelectValue placeholder="Select a client key" />
               </SelectTrigger>
               <SelectContent>
-                {keys.map((key) => (
-             <SelectItem key={key.id} value={key.key}> {/* pass UUID */}
-                {key.key}
-              </SelectItem>
-
+                {availableClientKeys.map((key) => (
+                  <SelectItem key={key.id} value={key.key}>
+                    {key.key}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

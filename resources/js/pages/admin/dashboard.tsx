@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, RadialBarChart, RadialBar, PolarAngleAxis, PolarRadiusAxis, Label } from 'recharts';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import AppLayout from '@/layouts/app-layout';
+import { Button } from '@/components/ui/button';
 
 interface Stats {
   clients: {
@@ -378,6 +379,7 @@ export default function Index({
     );
   };
 
+
   return (
     <AppLayout>
       <div className="min-h-screen">
@@ -540,7 +542,14 @@ export default function Index({
                       <Card>
                         <CardContent className="text-center py-16 text-muted-foreground">
                           <FolderKanban className="w-16 h-16 opacity-30 mx-auto mb-4" />
-                          <p className="text-sm">No projects yet</p>
+                          <p className="text-sm pb-3.5">No projects yet</p>
+                          <Link
+                            href="/admin/projects"
+                            className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted transition-colors"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Create your first project
+                          </Link>
                         </CardContent>
                       </Card>
                     </div>
@@ -591,7 +600,7 @@ export default function Index({
                                     key={i}
                                     className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 border-2 border-muted flex items-center justify-center text-white text-xs font-medium"
                                   >
-                                    {project.client_key?.name.charAt(i).toUpperCase()}
+                                    {(project.client_key?.name?.charAt(i) ?? project.name?.charAt(i) ?? '?').toUpperCase()}
                                   </div>
                                 ))}
                               </div>
@@ -634,7 +643,7 @@ export default function Index({
                       </CardContent>
                     </Card>
                   ) : (
-                    recentTasks.slice(0, 4).map((task) => (
+                    recentTasks.slice(0, 1).map((task) => (
                       <Card key={task.id} className='hover:bg-background/50 transition-colors cursor-pointer'>
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between gap-3 mb-3">
