@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,13 +13,20 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Pull admin details from .env so you never hardcode credentials
-        $adminEmail = env('ADMIN_EMAIL', 'admin@example.com');
-        $adminPassword = env('ADMIN_PASSWORD', 'password');
-        $adminName = env('ADMIN_NAME', 'Admin');
+        // Get admin credentials from .env
+        $adminEmail = env('ADMIN_EMAIL');
+        $adminPassword = env('ADMIN_PASSWORD');
+        $adminName = env('ADMIN_NAME', 'Administrator');
 
-        // Create or update admin user
-        User::firstOrCreate(
+        // --- Safety check ---
+        if (empty($adminEmail) || empty($adminPassword)) {
+            throw new \Exception(
+                "Admin credentials missing. Please set ADMIN_EMAIL and ADMIN_PASSWORD in your .env file before seeding."
+            );
+        }
+
+        // --- Create or update admin ---
+        $admin = User::updateOrCreate(
             ['email' => $adminEmail],
             [
                 'name' => $adminName,
@@ -29,5 +36,7 @@ class DatabaseSeeder extends Seeder
                 'is_admin' => true,
             ]
         );
+
+        $this->command->info("Admin account ready: {$admin->email}");
     }
 }
