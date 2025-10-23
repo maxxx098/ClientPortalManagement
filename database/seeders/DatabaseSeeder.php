@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -14,13 +13,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Pull admin details from .env so you never hardcode credentials
+        $adminEmail = env('ADMIN_EMAIL', 'admin@example.com');
+        $adminPassword = env('ADMIN_PASSWORD', 'password');
+        $adminName = env('ADMIN_NAME', 'Admin');
 
+        // Create or update admin user
         User::firstOrCreate(
-            ['email' => 'admin@example.com'],
+            ['email' => $adminEmail],
             [
-                'name' => 'Admin',
-                'password' => Hash::make('password'),
+                'name' => $adminName,
+                'password' => Hash::make($adminPassword),
                 'email_verified_at' => now(),
                 'role' => 'admin',
                 'is_admin' => true,
