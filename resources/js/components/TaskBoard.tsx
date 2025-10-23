@@ -13,8 +13,7 @@ import {
   CheckCheck,
   ArrowLeft,
   Tag,
-  CircuitBoardIcon,
-  FlagIcon,
+  CircuitBoard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { router } from "@inertiajs/react";
@@ -112,68 +111,68 @@ export default function TaskBoard({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="p-8 space-y-8">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">
               Task Overview
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Overview of all tasks and progress.
             </p>
           </div>
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs sm:text-sm text-muted-foreground">
                   Total Tasks
                 </span>
-                <CircuitBoardIcon className="h-4 w-4 text-muted-foreground" />
+                <CircuitBoard className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               </div>
-              <div className="mt-2 text-2xl font-semibold">{tasks.length}</div>
+              <div className="mt-2 text-xl sm:text-2xl font-semibold">{tasks.length}</div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs sm:text-sm text-muted-foreground">
                   In Progress
                 </span>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               </div>
-              <div className="mt-2 text-2xl font-semibold text-blue-500">
+              <div className="mt-2 text-xl sm:text-2xl font-semibold text-blue-500">
                 {inProgressTasks}
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs sm:text-sm text-muted-foreground">
                   Completed
                 </span>
-                <CheckCheck className="h-4 w-4 text-muted-foreground" />
+                <CheckCheck className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               </div>
-              <div className="mt-2 text-2xl font-semibold text-emerald-500">
+              <div className="mt-2 text-xl sm:text-2xl font-semibold text-emerald-500">
                 {completedTasks}
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">To Do</span>
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs sm:text-sm text-muted-foreground">To Do</span>
+                <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               </div>
-              <div className="mt-2 text-2xl font-semibold text-gray-400">
+              <div className="mt-2 text-xl sm:text-2xl font-semibold text-gray-400">
                 {todoTasks}
               </div>
             </CardContent>
@@ -217,127 +216,137 @@ export default function TaskBoard({
             </div>
 
             {expandedSections[key as keyof typeof expandedSections] && (
-              <div className="rounded-lg border border-border divide-y divide-border bg-card">
-                <div className="grid grid-cols-12 gap-4 px-4 py-2 text-xs text-muted-foreground">
-                  <div className="col-span-4">Task</div>
-                  <div className="col-span-2">Assignee</div>
-                  <div className="col-span-2">Due</div>
-                  <div className="col-span-2">Status</div>
-                  <div className="col-span-2 text-right">Actions</div>
-                </div>
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
+                {/* Horizontal scroll container */}
+                <div className="overflow-x-auto">
+                  <div className="min-w-[800px]">
+                    {/* Header */}
+                    <div className="grid grid-cols-12 gap-4 px-4 py-2 text-xs text-muted-foreground border-b border-border">
+                      <div className="col-span-4">Task</div>
+                      <div className="col-span-2">Assignee</div>
+                      <div className="col-span-2">Due</div>
+                      <div className="col-span-2">Status</div>
+                      <div className="col-span-2 text-right">Actions</div>
+                    </div>
 
-             {column.tasks.map((task) => {
-                  const statusInfo = statusConfig[task.status];
-                  const priority = task.priority || "low"; // default if missing
+                    {/* Task rows */}
+                    <div className="divide-y divide-border">
+                      {column.tasks.map((task) => {
+                        const statusInfo = statusConfig[task.status];
+                        const priority = task.priority || "low";
 
-                  // Priority badge color logic
-                  const priorityColors = {
-                    high: "bg-red-500/10 text-red-500 border border-red-500/30",
-                    medium: "bg-yellow-500/10 text-yellow-500 border border-yellow-500/30",
-                    low: "bg-green-500/10 text-green-500 border border-green-500/30",
-                  } as const;
+                        const priorityColors = {
+                          high: "bg-red-500/10 text-red-500 border border-red-500/30",
+                          medium: "bg-yellow-500/10 text-yellow-500 border border-yellow-500/30",
+                          low: "bg-green-500/10 text-green-500 border border-green-500/30",
+                        } as const;
 
-                  return (
-                    <div
-                      key={task.id}
-                      className="grid grid-cols-12 gap-4 px-4 py-3 text-sm hover:bg-muted/30 transition"
-                    >
-                      {/* ===== Task Title & Priority Badge ===== */}
-                      <div className="col-span-4 flex items-center gap-2 truncate">
-                        <span className="font-medium">{task.title}</span>
-
-                        {/* Priority Badge */}
-                        <span
-                          className={`text-[10px] flex justify-center items-center gap-2 m-auto px-2 py-0.5 rounded-full capitalize ${priorityColors[priority as keyof typeof priorityColors]}`}
-                        >
-                          <FlagIcon size={10}/>{priority}
-                        </span>
-                      </div>
-
-                      {/* ===== Assignee ===== */}
-                      <div className="col-span-2 flex items-center">
-                        <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                          {task.client_key_id?.substring(0, 2).toUpperCase() || "NA"}
-                        </div>
-                      </div>
-
-                      {/* ===== Due Date ===== */}
-                      <div className="col-span-2 flex items-center text-muted-foreground">
-                        <Calendar className="h-3.5 w-3.5 mr-1" />
-                        {task.due_date
-                          ? new Date(task.due_date).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })
-                          : "—"}
-                      </div>
-
-                      {/* ===== Status Selector ===== */}
-                      <div className="col-span-2">
-                        <Select
-                          value={task.status}
-                          onValueChange={(value) =>
-                            onUpdateStatus(task.id, value as Task["status"])
-                          }
-                        >
-                          <SelectTrigger className="h-8 px-3 text-xs font-medium border border-border">
-                            <span className={statusInfo.color}>{statusInfo.label}</span>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="todo">To Do</SelectItem>
-                            <SelectItem value="in_progress">In Progress</SelectItem>
-                            <SelectItem value="done">Done</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* ===== Actions ===== */}
-                      <div className="col-span-2 flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => onView(task.id)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(task)}>
-                          <svg
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
+                        return (
+                          <div
+                            key={task.id}
+                            className="grid grid-cols-12 gap-4 px-4 py-3 text-sm hover:bg-muted/30 transition"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
-                          </svg>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => onDelete(task.id)}>
-                          <svg
-                            className="h-4 w-4 text-destructive"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        </Button>
+                            {/* Task Title & Priority Badge */}
+                            <div className="col-span-4 flex items-center gap-2">
+                              <span className="font-medium truncate">{task.title}</span>
+                              <span
+                                className={`text-[10px] flex justify-center items-center gap-1 px-2 py-0.5 rounded-full capitalize whitespace-nowrap flex-shrink-0 ${priorityColors[priority as keyof typeof priorityColors]}`}
+                              >
+                                <Flag size={10}/>{priority}
+                              </span>
+                            </div>
+
+                            {/* Assignee */}
+                            <div className="col-span-2 flex items-center">
+                              <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
+                                {task.client_key_id?.substring(0, 2).toUpperCase() || "NA"}
+                              </div>
+                            </div>
+
+                            {/* Due Date */}
+                            <div className="col-span-2 flex items-center text-muted-foreground">
+                              <Calendar className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+                              <span className="whitespace-nowrap">
+                                {task.due_date
+                                  ? new Date(task.due_date).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                    })
+                                  : "—"}
+                              </span>
+                            </div>
+
+                            {/* Status Selector */}
+                            <div className="col-span-2">
+                              <Select
+                                value={task.status}
+                                onValueChange={(value) =>
+                                  onUpdateStatus(task.id, value as Task["status"])
+                                }
+                              >
+                                <SelectTrigger className="h-8 px-3 text-xs font-medium border border-border w-full">
+                                  <span className={statusInfo.color}>{statusInfo.label}</span>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="todo">To Do</SelectItem>
+                                  <SelectItem value="in_progress">In Progress</SelectItem>
+                                  <SelectItem value="done">Done</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="col-span-2 flex items-center justify-end gap-2">
+                              <Button variant="ghost" size="icon" onClick={() => onView(task.id)} className="h-8 w-8 flex-shrink-0">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => onEdit(task)} className="h-8 w-8 flex-shrink-0">
+                                <svg
+                                  className="h-4 w-4"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                  />
+                                </svg>
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => onDelete(task.id)} className="h-8 w-8 flex-shrink-0">
+                                <svg
+                                  className="h-4 w-4 text-destructive"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Add Task Row */}
+                      <div
+                        onClick={() =>
+                          onAddTask(key as "on_track" | "at_risk" | "off_track")
+                        }
+                        className="px-4 py-3 text-xs text-muted-foreground hover:bg-muted/30 cursor-pointer flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add Task
                       </div>
                     </div>
-                  );
-                })}
-                <div
-                  onClick={() =>
-                    onAddTask(key as "on_track" | "at_risk" | "off_track")
-                  }
-                  className="px-4 py-3 text-xs text-muted-foreground hover:bg-muted/30 cursor-pointer flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Task
+                  </div>
                 </div>
               </div>
             )}

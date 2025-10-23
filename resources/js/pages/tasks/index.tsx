@@ -207,6 +207,10 @@ const handleUpdateStatus = (taskId: number, status: Task["status"]) => {
             onDelete={handleDelete}
             clients={clients}
             userRole={auth.user.role}
+            isAdmin={auth.user.role === "admin"}
+            clientKey={client_key_id}
+            currentUserId={auth.user.id}
+            routePrefix={routePrefix}
           />
         </div>
 
