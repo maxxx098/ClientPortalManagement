@@ -62,32 +62,35 @@ const getCsrf = () => {
 };
 
   useEffect(() => {
-    let mounted = true;
-    setIsLoading(true);
+ 
 
-    fetch(baseUrl)
-      .then((res) => res.json())
-      .then((data) => {
-        if (mounted) setComments(data);
-      })
-      .catch((err) => console.error("Failed to load comments", err))
-      .finally(() => mounted && setIsLoading(false));
+  // existing fetch(baseUrl) and echo setup below
+  let mounted = true;
+  setIsLoading(true);
 
-    const channel = `task.${taskId}`;
-    const listener = (event: any) => {
-      if (event?.comment) {
-        setComments((prev) => [...prev, event.comment]);
-        scrollToBottom();
-      }
-    };
+  fetch(baseUrl)
+    .then((res) => res.json())
+    .then((data) => {
+      if (mounted) setComments(data);
+    })
+    .catch((err) => console.error("Failed to load comments", err))
+    .finally(() => mounted && setIsLoading(false));
 
-    echo.channel(channel).listen(".comment.created", listener);
+  const channel = `task.${taskId}`;
+  const listener = (event: any) => {
+    if (event?.comment) {
+      setComments((prev) => [...prev, event.comment]);
+      scrollToBottom();
+    }
+  };
 
-    return () => {
-      mounted = false;
-      try { echo.leaveChannel(channel); } catch {}
-    };
-  }, [taskId, baseUrl]);
+  echo.channel(channel).listen(".comment.created", listener);
+
+  return () => {
+    mounted = false;
+    try { echo.leaveChannel(channel); } catch {}
+  };
+}, [taskId, baseUrl]);
 
   const scrollToBottom = () => {
     const container = document.querySelector("#comment-list");
@@ -142,24 +145,24 @@ console.log('clientKey:', clientKey); // Add this to debug
     if (!token) return console.error("CSRF token not found");
 
     try {
-const res = await fetch(baseUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": token },
-        credentials: "same-origin",
-        body: JSON.stringify({ 
-          message: textToSend, 
-          client_key_id: clientKey,
-          parent_id: parentId
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to post comment");
-      const savedComment = await res.json();
-      setComments((prev) => prev.map((c) => (c.id === tempId ? savedComment : c)));
-    } catch (err) {
-      console.error(err);
-      setComments((prev) => prev.filter((c) => c.id !== tempId));
-    }
-  };
+    const res = await fetch(baseUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": token },
+            credentials: "same-origin",
+            body: JSON.stringify({ 
+              message: textToSend, 
+              client_key_id: clientKey,
+              parent_id: parentId
+            }),
+          });
+          if (!res.ok) throw new Error("Failed to post comment");
+          const savedComment = await res.json();
+          setComments((prev) => prev.map((c) => (c.id === tempId ? savedComment : c)));
+        } catch (err) {
+          console.error(err);
+          setComments((prev) => prev.filter((c) => c.id !== tempId));
+        }
+      };
 
   const handleDelete = async (id: number) => {
     const token = getCsrf();
