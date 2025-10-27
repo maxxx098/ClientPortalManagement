@@ -56,10 +56,12 @@ export default function TaskComments({ taskId, isAdmin = false, clientKey, curre
     ? `/admin/tasks/${taskId}/comments`
     : `/client/tasks/${taskId}/comments`;
 
+    // csrf token helper
+    
 const getCsrf = () => {
   const token = document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement;
   return token?.content || '';
-};
+}; 
 
   useEffect(() => {
  
