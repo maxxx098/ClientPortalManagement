@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, KeyRound, LayoutGrid, ProjectorIcon, TagsIcon } from 'lucide-react';
+import { BookOpen, Folder, FolderKanban, KeyRound, LayoutGrid, ProjectorIcon, TagsIcon } from 'lucide-react';
 import AppLogo from './app-logo';
 import { usePage } from '@inertiajs/react';
 import projects from '@/routes/admin/projects';
@@ -89,7 +89,7 @@ export function AppSidebar() {
     mainNavItems.push({
       title: "Projects",
       href: clientProjects.index.url(),
-      icon: ProjectorIcon,
+      icon: FolderKanban,
     });
   } else if (user?.is_admin) {
     console.log('Adding ADMIN Tasks nav item');
@@ -105,7 +105,7 @@ export function AppSidebar() {
     mainNavItems.push({
       title: "Projects",
       href: projects.index.url(),
-      icon: ProjectorIcon,
+      icon: FolderKanban,
     });
     
     // Only show Client Keys to admins

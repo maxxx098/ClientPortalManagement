@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useForm } from "@inertiajs/react";
+import React, { useState, useEffect } from "react";
+import { useForm, usePage } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -16,10 +16,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-// Passing types
 interface ClientKey {
   id: number;
   key: string;
@@ -28,7 +26,6 @@ interface ClientKey {
   created_at: string;
 }
 
-// Props interface
 interface Props {
   keys: ClientKey[];
 }
@@ -42,22 +39,56 @@ function route(name: string): string {
 
 export default function ClientKeys({ keys }: Props) {
   const { post, delete: deleteKey, processing } = useForm();
+  const { flash } = usePage().props as any;
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
   const [selectedKeyId, setSelectedKeyId] = useState<number | null>(null);
-  
-// Generate new key function
- const generateKey = () => {
-  post(route("client-keys.store"));
-};
+  const [errorMessage, setErrorMessage] = useState({ title: '', description: '' });
 
-  // Delete key function
-  function destroyKey() {
+  useEffect(() => {
+    // Handle Laravel flash error
+    if (flash?.error) {
+      setErrorMessage({
+        title: flash.error.title,
+        description: flash.error.description
+      });
+      setDeleteDialogOpen(false); // Close delete dialog
+      setErrorDialogOpen(true); // Show alert
+    }
+  }, [flash?.error]);
+
+  const generateKey = () => {
+    post(route("client-keys.store"));
+  };
+
+function destroyKey() {
   if (selectedKeyId !== null) {
-    deleteKey(route("client-keys.store") + `/${selectedKeyId}`);
-    setDeleteDialogOpen(false);
+    deleteKey(`/admin/client-keys/${selectedKeyId}`, {
+      preserveScroll: true,
+      preserveState: true,
+      onSuccess: () => {
+        setDeleteDialogOpen(false);
+      },
+      onError: (errors) => {
+        console.error(errors);
+      },
+      onFinish: () => {
+        // Wait a tick for flash data to appear
+        setTimeout(() => {
+          if (flash?.error) {
+            setErrorMessage({
+              title: flash.error.title,
+              description: flash.error.description,
+            });
+            setErrorDialogOpen(true);
+          }
+        }, 100);
+      },
+    });
   }
- }
+}
+
 
   function copyKey(id: number, key: string) {
     navigator.clipboard.writeText(key).then(() => {
@@ -68,11 +99,10 @@ export default function ClientKeys({ keys }: Props) {
 
   const availableKeys = keys.filter(key => !key.locked).length;
   const lockedKeys = keys.filter(key => key.locked).length;
-  
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 lg:p-8 space-y-6 ">
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
         {/* Header Section */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -120,18 +150,18 @@ export default function ClientKeys({ keys }: Props) {
             </CardContent>
           </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Locked Keys</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{lockedKeys}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Temporarily locked / in use
-            </p>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Locked Keys</CardTitle>
+              <AlertCircle className="h-4 w-4 text-red-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{lockedKeys}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Temporarily locked / in use
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Alert for no keys */}
@@ -191,18 +221,17 @@ export default function ClientKeys({ keys }: Props) {
                             </Button>
                           </div>
                         </TableCell>
-                      <TableCell>
-                        {key.locked ? (
-                          <Badge variant="destructive" className="font-normal">
-                            Locked
-                          </Badge>
-                        ) : (
-                          <Badge variant="default" className="bg-green-500 hover:bg-green-600 font-normal">
-                            Available
-                          </Badge>
-                        )}
-                      </TableCell>
-
+                        <TableCell>
+                          {key.locked ? (
+                            <Badge variant="destructive" className="font-normal">
+                              Locked
+                            </Badge>
+                          ) : (
+                            <Badge variant="default" className="bg-green-500 hover:bg-green-600 font-normal">
+                              Available
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="text-muted-foreground">
                           {new Date(key.created_at).toLocaleDateString('en-US', {
                             year: 'numeric',
@@ -213,18 +242,18 @@ export default function ClientKeys({ keys }: Props) {
                           })}
                         </TableCell>
                         <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setSelectedKeyId(key.id);
-                          setDeleteDialogOpen(true);
-                        }}
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        title="Delete key"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedKeyId(key.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            title="Delete key"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -235,6 +264,8 @@ export default function ClientKeys({ keys }: Props) {
           </Card>
         )}
       </div>
+      
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -250,6 +281,26 @@ export default function ClientKeys({ keys }: Props) {
               className="bg-destructive text-white hover:bg-destructive/90"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Error Dialog */}
+      <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-5 w-5" />
+              {errorMessage.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {errorMessage.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setErrorDialogOpen(false)}>
+              OK
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

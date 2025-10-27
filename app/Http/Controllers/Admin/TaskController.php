@@ -31,6 +31,7 @@ class TaskController extends Controller
         return Inertia::render('tasks/index', [
             'tasks' => $tasks,
             'clients' => $clients,
+        
         ]);
     }
 

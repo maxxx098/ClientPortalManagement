@@ -24,7 +24,7 @@ class ClientKey extends Model
      */
     public function projects()
     {
-        return $this->hasMany(Project::class, 'client_key_id');
+        return $this->hasMany(Project::class, 'client_key_id', 'key');
     }
 
     /**

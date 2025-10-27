@@ -15,27 +15,34 @@ class ProjectController extends Controller
      */
         public function index(Request $request)
         {
-            $projects = Project::with('clientKey:key,id')
-                ->withCount('tasks')
-                ->latest()
-                ->get()
-                ->map(function ($project) {
-                    $totalTasks = $project->tasks()->count();
-                    $completedTasks = $project->tasks()->where('status', 'done')->count();
-                    $project->progress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
-                    $project->tasks_count = $totalTasks;
-                    return $project;
-                });
+            $hasClientKeys = \App\Models\ClientKey::exists();
 
-            // Get client keys that don't have projects yet
-            $usedClientKeyIds = Project::pluck('client_key_id')->toArray();
-            $availableClientKeys = \App\Models\ClientKey::whereNotIn('key', $usedClientKeyIds)
-                ->select('id', 'key')
-                ->get();
+            $projects = [];
+            $availableClientKeys = collect();
+
+            if ($hasClientKeys) {
+                $projects = Project::with('clientKey:key,id')
+                    ->withCount('tasks')
+                    ->latest()
+                    ->get()
+                    ->map(function ($project) {
+                        $totalTasks = $project->tasks()->count();
+                        $completedTasks = $project->tasks()->where('status', 'done')->count();
+                        $project->progress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
+                        $project->tasks_count = $totalTasks;
+                        return $project;
+                    });
+
+                $usedClientKeyIds = Project::pluck('client_key_id')->toArray();
+                $availableClientKeys = \App\Models\ClientKey::whereNotIn('key', $usedClientKeyIds)
+                    ->select('id', 'key')
+                    ->get();
+            }
 
             return Inertia::render('admin/projects/index', [
                 'projects' => $projects,
                 'availableClientKeys' => $availableClientKeys,
+                'hasClientKeys' => $hasClientKeys,
                 'isAdmin' => true,
             ]);
         }

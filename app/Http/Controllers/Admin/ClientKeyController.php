@@ -56,16 +56,26 @@ class ClientKeyController extends Controller
     
     }
 
-    
-    public function destroy($id)
-    {
-        $clientKey = ClientKey::findOrFail($id);
-        $clientKey->delete();
+        
+            public function destroy($id)
+        {
+            $clientKey = ClientKey::findOrFail($id);
+            $projectCount = $clientKey->projects()->count();
 
-        return redirect()->route('admin.client-keys.index')->with('success', 'Client key deleted!');
-    
-    }
-    
+            if ($projectCount > 0) {
+                return back()->with([
+                    'error' => [
+                        'title' => 'Cannot Delete Client Key',
+                        'description' => "This client key has {$projectCount} project(s) linked to it. Please reassign or delete the projects first."
+                    ]
+                ]);
+            }
+
+            $clientKey->delete();
+
+            return back()->with('success', 'Client key deleted successfully!');
+        }
+
     public function list()
     {
         $keys = ClientKey::orderBy('created_at', 'desc')->get(['id', 'key']);

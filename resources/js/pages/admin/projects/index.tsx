@@ -15,7 +15,8 @@ import {
   TrendingUp,
   MoreVertical,
   CheckCircle2,
-  Circle
+  Circle,
+  Key
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -46,10 +47,45 @@ interface Project {
   due_date: string
   progress?: number
   tasks_count?: number
-
 }
 
 export default function Index() {
+  const { projects: projectList, availableClientKeys, hasClientKeys } = usePage().props as unknown as { 
+    projects: Project[] 
+    availableClientKeys: {id: number, key: string}[]
+    hasClientKeys: boolean
+  }
+
+  const [open, setOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
+
+  // If no client keys exist, show warning message
+  if (!hasClientKeys) {
+    return (
+      <AppLayout>
+        <Head title="Projects" />
+        <div className="min-h-screen">
+          <div className="container mx-auto p-6 lg:p-8">
+            <div className="flex flex-col items-center justify-center h-[70vh] text-center">
+              <div className="rounded-full bg-amber-500/10 p-6 mb-6">
+                <Key className="w-16 h-16 text-amber-500" />
+              </div>
+              <h1 className="text-2xl font-bold mb-3">No Client Keys Found</h1>
+              <p className="text-sm text-muted-foreground mb-6 max-w-md">
+                You need to generate at least one client key before creating or managing projects.
+              </p>
+              <Button onClick={() => router.visit('/admin/client-keys')} className="gap-2">
+                <Key className="h-4 w-4" />
+                Go to Client Key Management
+              </Button>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    )
+  }
+
   const priorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case "high":
@@ -122,23 +158,17 @@ export default function Index() {
     router.visit(projects.edit.url({ project: projectId }))
   }
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
-
-  // Called from the UI to request deletion (opens the alert dialog)
   const handleDelete = (project: Project) => {
     setProjectToDelete(project)
     setDeleteDialogOpen(true)
   }
 
-  // Called when user confirms deletion in the dialog
   const confirmDelete = () => {
     if (projectToDelete === null) return
     router.delete(projects.destroy.url({ project: projectToDelete.id }), {
       onSuccess: () => {
         setDeleteDialogOpen(false)
         setProjectToDelete(null)
-        // Optional: show success toast / message
       },
       onError: () => {
         // Optional: handle error
@@ -146,17 +176,10 @@ export default function Index() {
     })
   }
 
-  // Called when user cancels the dialog
   const cancelDelete = () => {
     setDeleteDialogOpen(false)
     setProjectToDelete(null)
   }
-
-  const { projects: projectList, availableClientKeys } = usePage().props as unknown as { 
-    projects: Project[] 
-    availableClientKeys: {id: number, key: string}[]
-  }
-  const [open, setOpen] = useState(false)
 
   return (
     <AppLayout>

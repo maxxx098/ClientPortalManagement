@@ -10,6 +10,7 @@ import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { SidebarInset } from '@/components/ui/sidebar';
 import { Card } from "@/components/ui/card";
 import { router } from "@inertiajs/react";
+import { Key } from "lucide-react";
 
 // ============================================================================
 // TYPES
@@ -36,7 +37,8 @@ export default function Index({
   tasks: initialTasks, 
   clients = [], 
   client_key_id, 
-  auth 
+  auth,
+  hasClientKeys = true
 }: {
   tasks: Task[];
   clients?: { id: string; key: string }[];
@@ -47,6 +49,7 @@ export default function Index({
       role: string;
     }
   };
+  hasClientKeys?: boolean;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarMode, setSidebarMode] = useState<"view" | "edit" | "create">("view");
@@ -68,6 +71,31 @@ export default function Index({
   React.useEffect(() => {
     setOptimisticTasks(initialTasks);
   }, [initialTasks]);
+
+  // If no client keys exist, show warning message
+  if (!hasClientKeys) {
+    return (
+      <AppShell variant="sidebar">
+        <AppSidebar />
+        <SidebarInset>
+          <AppSidebarHeader breadcrumbs={[]} />
+          <div className="flex flex-col items-center justify-center h-[70vh] text-center p-6">
+            <div className="rounded-full bg-amber-500/10 p-6 mb-6">
+              <Key className="w-16 h-16 text-amber-500" />
+            </div>
+            <h1 className="text-2xl font-bold mb-3">No Client Keys Found</h1>
+            <p className="text-sm text-muted-foreground mb-6 max-w-md">
+              You need to generate at least one client key before creating or managing tasks.
+            </p>
+            <Button onClick={() => router.visit('/admin/client-keys')} className="gap-2">
+              <Key className="h-4 w-4" />
+              Go to Client Key Management
+            </Button>
+          </div>
+        </SidebarInset>
+      </AppShell>
+    );
+  }
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -125,6 +153,7 @@ export default function Index({
       });
     }
   };
+
   const handleSave = (formData: FormData) => {
     setIsProcessing(true);
     setTimeout(() => {
@@ -135,15 +164,15 @@ export default function Index({
     }, 500);
   };
 
-const handleUpdateStatus = (taskId: number, status: Task["status"]) => {
-  // Optimistically update the UI immediately
-  setOptimisticTasks(prev => 
-    prev.map(task => 
-      task.id === taskId ? { ...task, status } : task
-    )
-  );
+  const handleUpdateStatus = (taskId: number, status: Task["status"]) => {
+    // Optimistically update the UI immediately
+    setOptimisticTasks(prev => 
+      prev.map(task => 
+        task.id === taskId ? { ...task, status } : task
+      )
+    );
 
-  // Save to the database 
+    // Save to the database 
     const formData = new FormData();
     formData.append("status", status);
     formData.append("_method", "PATCH");
