@@ -10,7 +10,7 @@ import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { SidebarInset } from '@/components/ui/sidebar';
 import { Card } from "@/components/ui/card";
 import { router } from "@inertiajs/react";
-import { Key } from "lucide-react";
+import { FolderKanban, Key } from "lucide-react";
 
 // ============================================================================
 // TYPES
@@ -38,7 +38,8 @@ export default function Index({
   clients = [], 
   client_key_id, 
   auth,
-  hasClientKeys = true
+  hasClientKeys = true,
+  hasProjects = true
 }: {
   tasks: Task[];
   clients?: { id: string; key: string }[];
@@ -50,6 +51,7 @@ export default function Index({
     }
   };
   hasClientKeys?: boolean;
+  hasProjects?: boolean;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarMode, setSidebarMode] = useState<"view" | "edit" | "create">("view");
@@ -72,24 +74,24 @@ export default function Index({
     setOptimisticTasks(initialTasks);
   }, [initialTasks]);
 
-  // If no client keys exist, show warning message
-  if (!hasClientKeys) {
+    // If no projects exist, show warning message
+  if (!hasProjects) {
     return (
       <AppShell variant="sidebar">
         <AppSidebar />
         <SidebarInset>
           <AppSidebarHeader breadcrumbs={[]} />
           <div className="flex flex-col items-center justify-center h-[70vh] text-center p-6">
-            <div className="rounded-full bg-amber-500/10 p-6 mb-6">
-              <Key className="w-16 h-16 text-amber-500" />
+            <div className="rounded-full bg-blue-500/10 p-6 mb-6">
+              <FolderKanban className="w-16 h-16 text-blue-500" />
             </div>
-            <h1 className="text-2xl font-bold mb-3">No Client Keys Found</h1>
+            <h1 className="text-2xl font-bold mb-3">No Projects Found</h1>
             <p className="text-sm text-muted-foreground mb-6 max-w-md">
-              You need to generate at least one client key before creating or managing tasks.
+              You need to create at least one project before creating or managing tasks.
             </p>
-            <Button onClick={() => router.visit('/admin/client-keys')} className="gap-2">
-              <Key className="h-4 w-4" />
-              Go to Client Key Management
+            <Button onClick={() => router.visit('/admin/projects')} className="gap-2">
+              <FolderKanban className="h-4 w-4" />
+              Go to Project Management
             </Button>
           </div>
         </SidebarInset>

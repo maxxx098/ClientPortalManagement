@@ -159,16 +159,24 @@ class ProjectController extends Controller
      */
     public function destroy(Request $request, Project $project)
     {
-        // Delete associated file if exists
+        // Delete all related tasks and their comments
+        $tasks = Task::where('client_key_id', $project->client_key_id)->get();
+        foreach ($tasks as $task) {
+            $task->comments()->delete();
+            $task->delete();
+        }
+
+        // Delete file if exists
         if ($project->file) {
             $filePath = str_replace('/storage/', '', $project->file);
             \Storage::disk('public')->delete($filePath);
         }
 
+        // Delete the project
         $project->delete();
 
         return redirect()->route('admin.projects.index')
-            ->with('success', 'Project deleted successfully.');
+            ->with('success', 'Project, tasks, and related comments deleted successfully.');
     }
 
     /**

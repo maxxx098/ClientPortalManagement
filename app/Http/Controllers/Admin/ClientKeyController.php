@@ -12,12 +12,15 @@ class ClientKeyController extends Controller
 {
     public function index()
     {
-        $keys = ClientKey::orderBy('created_at', 'desc')->get();
+        $keys = ClientKey::withCount('projects')
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return Inertia::render('admin/clientkey/index', [
             'keys' => $keys
         ]);
     }
+
 
     public function store()
     {
@@ -57,13 +60,14 @@ class ClientKeyController extends Controller
     }
 
         
-            public function destroy($id)
+        public function destroy($id)
         {
             $clientKey = ClientKey::findOrFail($id);
             $projectCount = $clientKey->projects()->count();
 
+            // If the key is linked to projects — return flash error
             if ($projectCount > 0) {
-                return back()->with([
+                return redirect()->route('admin.client-keys.index')->with([
                     'error' => [
                         'title' => 'Cannot Delete Client Key',
                         'description' => "This client key has {$projectCount} project(s) linked to it. Please reassign or delete the projects first."
@@ -71,10 +75,17 @@ class ClientKeyController extends Controller
                 ]);
             }
 
+            // Otherwise, delete the key
             $clientKey->delete();
 
-            return back()->with('success', 'Client key deleted successfully!');
+            return redirect()->route('admin.client-keys.index')->with([
+                'success' => [
+                    'title' => 'Deleted Successfully',
+                    'description' => 'Client key deleted successfully!'
+                ]
+            ]);
         }
+
 
     public function list()
     {

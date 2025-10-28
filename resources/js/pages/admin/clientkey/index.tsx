@@ -62,33 +62,42 @@ export default function ClientKeys({ keys }: Props) {
     post(route("client-keys.store"));
   };
 
-function destroyKey() {
-  if (selectedKeyId !== null) {
+    function destroyKey() {
+      if (selectedKeyId === null) return;
+
     deleteKey(`/admin/client-keys/${selectedKeyId}`, {
       preserveScroll: true,
-      preserveState: true,
-      onSuccess: () => {
-        setDeleteDialogOpen(false);
-      },
-      onError: (errors) => {
-        console.error(errors);
-      },
-      onFinish: () => {
-        // Wait a tick for flash data to appear
-        setTimeout(() => {
-          if (flash?.error) {
+      preserveState: false, // Force reload new flash props
+      onSuccess: () => setDeleteDialogOpen(false),
+      onError: (errors: any) => {
+        // Handle Laravel validation or custom error JSON
+        if (errors?.error) {
+          setErrorMessage(errors.error);
+        } else {
             setErrorMessage({
-              title: flash.error.title,
-              description: flash.error.description,
+              title: "Error",
+              description: "An unexpected error occurred.",
             });
-            setErrorDialogOpen(true);
           }
-        }, 100);
-      },
-    });
-  }
-}
+          setErrorDialogOpen(true);
+        },
+      });
+    }
 
+  const handleDeleteClick = (key: any) => {
+    // If it has linked projects → show error alert
+    if (key.projects_count > 0) {
+      setErrorMessage({
+        title: "Cannot Delete Client Key",
+        description: `This client key has ${key.projects_count} project(s) linked to it. Please reassign or delete them first.`,
+      });
+      setErrorDialogOpen(true);
+    } else {
+      // Otherwise → show confirmation
+      setSelectedKeyId(key.id);
+      setDeleteDialogOpen(true);
+    }
+  };
 
   function copyKey(id: number, key: string) {
     navigator.clipboard.writeText(key).then(() => {
@@ -245,10 +254,7 @@ function destroyKey() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
-                              setSelectedKeyId(key.id);
-                              setDeleteDialogOpen(true);
-                            }}
+                            onClick={() => handleDeleteClick(key)}
                             className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                             title="Delete key"
                           >
