@@ -58,4 +58,12 @@ class ClientKey extends Model
     {
         return $query->where('locked', true);
     }
+
+    /**
+     * Get the invoices for this client key
+     */
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class);
+    }
 }

@@ -9,6 +9,8 @@ use App\Http\Controllers\Client\ClientProjectController;
 use App\Http\Controllers\Client\ClientTaskController;
 use App\Http\Controllers\CommentReactionController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
+use App\Http\Controllers\Client\InvoiceController as ClientInvoiceController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -76,6 +78,12 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/comments/{comment}/pin', [CommentController::class, 'togglePin']);
     Route::post('/comments/{comment}/highlight', [CommentController::class, 'toggleHighlight']);
 
+    //Admin Invoices Management
+    Route::get('/invoices', [AdminInvoiceController::class, 'all'])->name('admin.invoices.all');
+    Route::get('/clients/{clientKey}/invoices', [AdminInvoiceController::class, 'index'])->name('admin.invoices.index');
+    Route::post('/clients/{clientKey}/invoices', [AdminInvoiceController::class, 'store'])->name('admin.invoices.store');
+    Route::get('/invoices/{invoice}', [AdminInvoiceController::class, 'show'])->name('admin.invoices.show');
+
 });
 
 // ============================================
@@ -109,6 +117,10 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
     Route::post('/comments/{comment}/react', [CommentReactionController::class, 'react']);
     Route::post('/comments/{comment}/react', [CommentController::class, 'addReaction']);
+
+    // Client Invoices Management
+    Route::get('/invoices', [ClientInvoiceController::class, 'index'])->name('invoices.index');
+    Route::get('/invoices/{invoice}', [ClientInvoiceController::class, 'show'])->name('invoices.show');
 });
 
 require __DIR__.'/settings.php';

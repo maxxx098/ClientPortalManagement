@@ -20,6 +20,7 @@ import clientProjects from '@/routes/client/projects';
 import clientKeys from '@/routes/admin/client-keys';
 import adminTasks from '@/routes/admin/tasks';
 import clientTasks from '@/routes/client/tasks';
+import adminInvoices from '@/routes/admin/admin/invoices/index';
 import { dashboard } from '@/routes';
 
 export function AppSidebar() {
@@ -98,6 +99,13 @@ export function AppSidebar() {
       title: "Tasks",
       href: adminTasks.index.url(),
       icon: TagsIcon,
+    });
+
+    // Admin Invoices Route
+    mainNavItems.push({
+      title: "Invoices",
+      href: adminInvoices.all.url(), // Use the new "all" route
+      icon: Folder,
     });
     
     console.log('Adding ADMIN Projects nav item');
