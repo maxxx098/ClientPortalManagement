@@ -79,10 +79,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/comments/{comment}/highlight', [CommentController::class, 'toggleHighlight']);
 
     //Admin Invoices Management
-    Route::get('/invoices', [AdminInvoiceController::class, 'all'])->name('admin.invoices.all');
-    Route::get('/clients/{clientKey}/invoices', [AdminInvoiceController::class, 'index'])->name('admin.invoices.index');
-    Route::post('/clients/{clientKey}/invoices', [AdminInvoiceController::class, 'store'])->name('admin.invoices.store');
-    Route::get('/invoices/{invoice}', [AdminInvoiceController::class, 'show'])->name('admin.invoices.show');
+    Route::get('/invoices', [AdminInvoiceController::class, 'index'])->name('invoices.index');
+    Route::post('/clients/{clientKey}/invoices', [AdminInvoiceController::class, 'store'])->name('invoices.store');
+    Route::delete('/invoices/{invoice}', [AdminInvoiceController::class, 'destroy'])->name('invoices.destroy');
+    Route::get('/invoices/{invoice}', [AdminInvoiceController::class, 'show'])->name('invoices.show');
 
 });
 

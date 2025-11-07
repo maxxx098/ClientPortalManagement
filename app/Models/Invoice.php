@@ -12,9 +12,13 @@ class Invoice extends Model
     protected $fillable = [
         'client_key_id',
         'invoice_number',
+        'invoice_date',
         'amount',
         'status',
         'due_date',
+        'overdue_notice_sent',
+        'paid_date',
+        'overdue_date',
         'notes',
     ];
 
@@ -22,4 +26,5 @@ class Invoice extends Model
     {
         return $this->belongsTo(ClientKey::class);
     }
+    
 }

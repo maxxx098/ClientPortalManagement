@@ -2,6 +2,7 @@ import React from "react";
 import { router, Link } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Printer, Download, Trash2, Edit } from "lucide-react";
+import AppLayout from "@/layouts/app-layout";
 
 type Invoice = {
   id: number;
@@ -54,7 +55,7 @@ export default function InvoiceShow({ invoice }: Props) {
     if (confirm("Are you sure you want to delete this invoice?")) {
       router.delete(`/admin/invoices/${invoice.id}`, {
         onSuccess: () => {
-          router.visit(`/admin/clients/${invoice.client?.key}/invoices`);
+          router.visit(`/admin/invoices`);
         },
       });
     }
@@ -65,7 +66,8 @@ export default function InvoiceShow({ invoice }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AppLayout>
+    <div className="min-h-screen">
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         {/* Header Actions */}
         <div className="flex items-center justify-between print:hidden">
@@ -230,5 +232,6 @@ export default function InvoiceShow({ invoice }: Props) {
         </div>
       </div>
     </div>
+    </AppLayout>
   );
 }

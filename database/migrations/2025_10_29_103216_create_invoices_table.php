@@ -16,6 +16,8 @@ return new class extends Migration
         $table->foreignId('client_key_id')->constrained()->onDelete('cascade');
         $table->string('invoice_number')->unique();
         $table->date('invoice_date');
+        $table->date('due_date');
+        $table->date('overdue_date')->nullable();
         $table->decimal('amount', 10, 2);
         $table->string('status')->default('unpaid');
         $table->text('notes')->nullable();
