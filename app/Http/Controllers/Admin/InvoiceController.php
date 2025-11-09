@@ -5,8 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ClientKey;
 use App\Models\Invoice;
-use App\Models\InvoiceItem;
-use App\Models\Payment;
+use App\Models\Payments;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -101,7 +100,6 @@ class InvoiceController extends Controller
         $data = $request->validate([
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
-            'amount' => 'required|numeric',
             'status' => 'required|string|in:unpaid,paid,overdue,cancelled',
             'notes' => 'nullable|string',
             'internal_notes' => 'nullable|string',
@@ -139,45 +137,21 @@ class InvoiceController extends Controller
             'notes' => $data['notes'] ?? null,
             'internal_notes' => $data['internal_notes'] ?? null,
             'payment_terms' => $data['payment_terms'] ?? 'Net 30',
+            'items' => $data['items'], // Store items as JSON
         ]);
-
-        // Create invoice items
-        foreach ($data['items'] as $item) {
-            InvoiceItem::create([
-                'invoice_id' => $invoice->id,
-                'description' => $item['description'],
-                'quantity' => $item['quantity'],
-                'rate' => $item['rate'],
-                'amount' => $item['quantity'] * $item['rate'],
-            ]);
-        }
 
         return redirect()->route('admin.invoices.index')
             ->with('success', 'Invoice created successfully.');
     }
-
     public function show(Invoice $invoice)
     {
-        $invoice->load(['clientKey', 'items', 'payments']);
-        
         return Inertia::render('admin/invoices/show', [
             'invoice' => $invoice,
+            'isAdmin' => true,
+            'clientKey' => $invoice->clientKey,
+            'payments' => $invoice->payments,
+            'items' => $invoice->items,
         ]);
-    }
-
-    public function update(Request $request, Invoice $invoice)
-    {
-        $data = $request->validate([
-            'invoice_date' => 'required|date',
-            'due_date' => 'required|date',
-            'status' => 'required|string',
-            'notes' => 'nullable|string',
-            'internal_notes' => 'nullable|string',
-        ]);
-
-        $invoice->update($data);
-
-        return back()->with('success', 'Invoice updated successfully.');
     }
 
     public function destroy(Invoice $invoice)
@@ -294,7 +268,7 @@ class InvoiceController extends Controller
 
         $data['invoice_id'] = $invoice->id;
 
-        Payment::create($data);
+        Payments::create($data);
 
         // Update invoice status if fully paid
         $totalPaid = $invoice->payments()->sum('amount');
@@ -315,16 +289,43 @@ class InvoiceController extends Controller
         $newInvoice->invoice_date = now();
         $newInvoice->due_date = now()->addDays(30);
         $newInvoice->status = 'unpaid';
-        $newInvoice->save();
 
-        // Duplicate items
-        foreach ($invoice->items as $item) {
-            $newItem = $item->replicate();
-            $newItem->invoice_id = $newInvoice->id;
-            $newItem->save();
-        }
+        // If items are stored as a JSON/array on the invoice model, copy them directly
+        $newInvoice->items = $invoice->items ?? [];
+        $newInvoice->save();
 
         return redirect()->route('admin.invoices.show', $newInvoice)
             ->with('success', 'Invoice duplicated successfully.');
     }
+
+     public function updateStatus(Request $request, Invoice $invoice)
+    {
+        $validated = $request->validate([
+            'invoice_date' => 'required|date',
+            'due_date' => 'required|date',
+            'status' => 'required|in:unpaid,paid,overdue,cancelled',
+            'notes' => 'nullable|string',
+            'internal_notes' => 'nullable|string',
+        ]);
+
+        // Auto-create payment when marking as paid
+        if ($validated['status'] === 'paid' && $invoice->status !== 'paid') {
+            $totalPaid = $invoice->payments()->sum('amount');
+            $balance = $invoice->amount - $totalPaid;
+            
+            if ($balance > 0) {
+                $invoice->payments()->create([
+                    'amount' => $balance,
+                    'payment_date' => now(),
+                    'payment_method' => 'bank_transfer',
+                    'notes' => 'Automatically recorded when invoice marked as paid',
+                ]);
+            }
+        }
+
+        $invoice->update($validated);
+
+        return redirect()->back()->with('success', 'Invoice updated successfully');
+    }
+
 }

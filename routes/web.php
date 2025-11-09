@@ -83,12 +83,18 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('/clients/{clientKey}/invoices', [AdminInvoiceController::class, 'store'])->name('invoices.store');
     Route::delete('/invoices/{invoice}', [AdminInvoiceController::class, 'destroy'])->name('invoices.destroy');
     Route::get('/invoices/{invoice}', [AdminInvoiceController::class, 'show'])->name('invoices.show');
-
+    Route::get('/invoices/{invoice}/edit', [AdminInvoiceController::class, 'edit'])->name('invoices.edit');
+    Route::put('/invoices/{invoice}', [AdminInvoiceController::class, 'updateStatus'])->name('invoices.update');
+    Route::post('/invoices/{invoice}/duplicate', [AdminInvoiceController::class, 'duplicate'])->name('invoices.duplicate');
+    Route::post('/invoices/bulk-delete', [AdminInvoiceController::class, 'bulkDelete'])->name('invoices.bulkDelete');
+    Route::post('/invoices/bulk-update', [AdminInvoiceController::class, 'bulkUpdate'])->name('invoices.bulkUpdate');
+    Route::get('/invoices/{invoice}/pdf', [AdminInvoiceController::class, 'downloadPdf'])->name('invoices.downloadPdf');
 });
 
 // ============================================
 // CLIENT ONLY ROUTES
 // ============================================
+
 Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('client.')->group(function () {
     // Client Dashboard
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');

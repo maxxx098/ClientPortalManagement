@@ -11,11 +11,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Search, Eye, Plus, Download, Mail, Filter, Trash2, RefreshCw, FileText, TrendingUp, DollarSign, AlertCircle, CheckCircle } from "lucide-react";
+import { Search, Eye, Plus, Download, Filter, Trash2, FileText, TrendingUp, DollarSign, AlertCircle, CheckCircle, ArrowUpRight } from "lucide-react";
 import AppLayout from "@/layouts/app-layout";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ValueType } from "recharts/types/component/DefaultTooltipContent";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 type Stats = {
   total_revenue: number;
@@ -72,37 +73,56 @@ export default function AllInvoices({ invoices, clients = [], stats, monthlyReve
   });
 
   const handleSubmit = (e: { preventDefault: () => void; }) => {
-    e.preventDefault();
-    
-    if (!form.client_key) {
-      alert("Please select a client");
-      return;
-    }
+  e.preventDefault();
+  
+  if (!form.client_key) {
+    alert("Please select a client");
+    return;
+  }
 
-    if (form.items.length === 0 || !form.items[0].description) {
-      alert("Please add at least one item");
-      return;
-    }
+  if (form.items.length === 0 || !form.items[0].description) {
+    alert("Please add at least one item");
+    return;
+  }
 
-    router.post(`/admin/clients/${form.client_key}/invoices`, form, {
-      onSuccess: () => {
-        setForm({
-          client_key: "",
-          invoice_date: "",
-          due_date: "",
-          amount: "",
-          status: "unpaid",
-          notes: "",
-          internal_notes: "",
-          tax_rate: "0",
-          discount: "0",
-          payment_terms: "Net 30",
-          items: [{ description: "", quantity: 1, rate: 0 }],
-        });
-        setShowDialog(false);
-      },
-    });
+  // Calculate totals
+  const subtotal = calculateSubtotal();
+  const taxRate = parseFloat(form.tax_rate) || 0;
+  const taxAmount = subtotal * (taxRate / 100);
+  const discount = parseFloat(form.discount) || 0;
+  const total = subtotal + taxAmount - discount;
+
+  // Prepare submission data with calculated values
+  const submissionData = {
+    ...form,
+    subtotal: subtotal.toFixed(2),
+    tax_amount: taxAmount.toFixed(2),
+    amount: total.toFixed(2), // This is what the backend needs
   };
+
+  router.post(`/admin/clients/${form.client_key}/invoices`, submissionData, {
+    onSuccess: () => {
+      setForm({
+        client_key: "",
+        invoice_date: "",
+        due_date: "",
+        amount: "",
+        status: "unpaid",
+        notes: "",
+        internal_notes: "",
+        tax_rate: "0",
+        discount: "0",
+        payment_terms: "Net 30",
+        items: [{ description: "", quantity: 1, rate: 0 }],
+      });
+      setShowDialog(false);
+    },
+    onError: (errors) => {
+      console.error('Validation errors:', errors);
+      alert('Error creating invoice. Check console for details.');
+    },
+  });
+};
 
   const handleFilterSubmit = (e: { preventDefault: () => void; }) => {
     e.preventDefault();
@@ -190,7 +210,7 @@ export default function AllInvoices({ invoices, clients = [], stats, monthlyReve
     });
   };
 
-  const bulkDelete = () => {
+    const bulkDelete = () => {
     if (selectedInvoices.length === 0) {
       alert("Please select invoices");
       return;
@@ -225,96 +245,48 @@ export default function AllInvoices({ invoices, clients = [], stats, monthlyReve
     });
   };
 
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      paid: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+      unpaid: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+      overdue: 'bg-red-500/10 text-red-400 border-red-500/20',
+      cancelled: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    };
+    return colors[status] || 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+  };
+
+  const currentDate = new Date().toLocaleDateString('en-US', { 
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric' 
+  });
+
   return (
     <AppLayout>
       <div className="min-h-screen">
-        <div className="max-w-7xl mx-auto p-6 space-y-6">
-          {/* Stats Dashboard */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className=" p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Revenue</p>
-                  <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.total_revenue)}</p>
-                </div>
-                <div className="bg-green-100 p-3 rounded-full">
-                  <DollarSign className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-            </Card>
-
-            <Card className=" p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Pending</p>
-                  <p className="text-2xl font-bold text-yellow-600">{formatCurrency(stats.pending_amount)}</p>
-                  <p className="text-xs text-gray-500 mt-1">{stats.unpaid_invoices} invoices</p>
-                </div>
-                <div className="bg-yellow-100 p-3 rounded-full">
-                  <AlertCircle className="w-6 h-6 text-yellow-600" />
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6 rounded-lg shadow-sm border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Overdue</p>
-                  <p className="text-2xl font-bold text-red-600">{formatCurrency(stats.overdue_amount)}</p>
-                  <p className="text-xs text-gray-500 mt-1">{stats.overdue_invoices} invoices</p>
-                </div>
-                <div className="bg-red-100 p-3 rounded-full">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6 rounded-lg shadow-sm border ">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">This Month</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(stats.this_month_revenue)}</p>
-                  <p className="text-xs text-gray-500 mt-1">{stats.paid_invoices} paid</p>
-                </div>
-                <div className="bg-blue-100 p-3 rounded-full">
-                  <TrendingUp className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Revenue Chart */}
-          <div className=" p-6 rounded-lg shadow-sm border border-gray-200">
-            <h3 className="text-lg font-semibold mb-4">Revenue Trend (Last 6 Months)</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={monthlyRevenue}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => formatCurrency(value)} />
-                <Line type="monotone" dataKey="revenue" stroke="#2563eb" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
+        <div className="container mx-auto p-6 lg:p-8 space-y-6">
+          
           {/* Header */}
-          <div className="flex justify-between items-center  p-4 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-6 border-b border-border/50">
             <div>
-              <h1 className="text-3xl font-bold">All Invoices</h1>
-              <div className="text-sm text-gray-600 mt-1">
-                Total: {invoices.total} invoice{invoices.total !== 1 ? "s" : ""}
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-3xl font-bold">All Invoices</h1>
               </div>
+              <p className="text-muted-foreground text-sm">
+                Total: {invoices.total} invoice{invoices.total !== 1 ? "s" : ""} • {currentDate}
+              </p>
             </div>
             
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={exportInvoices}>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={exportInvoices} className="rounded-xl">
                 <Download className="w-4 h-4 mr-2" />
                 Export
               </Button>
               
               <Dialog open={showDialog} onOpenChange={setShowDialog}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button className="rounded-xl">
                     <Plus className="w-4 h-4 mr-2" />
                     New Invoice
                   </Button>
@@ -333,15 +305,15 @@ export default function AllInvoices({ invoices, clients = [], stats, monthlyReve
                       <select
                         value={form.client_key}
                         onChange={(e) => setForm({ ...form, client_key: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-md"
+                        className="w-full px-3 py-2 border rounded-md bg-background"
                         required
                       >
                         <option value="">-- Select a client --</option>
                         {clients && clients.length > 0 ? (
                           clients.map((client) => (
                             <option key={client.id} value={client.key}>
-                              {client.name}
-                            </option>
+                          (ID: {client.id})
+                        </option>
                           ))
                         ) : (
                           <option value="" disabled>No clients available</option>
@@ -373,7 +345,7 @@ export default function AllInvoices({ invoices, clients = [], stats, monthlyReve
                         <select
                           value={form.payment_terms}
                           onChange={(e) => setForm({ ...form, payment_terms: e.target.value })}
-                          className="w-full px-3 py-2 border rounded-md"
+                          className="w-full px-3 py-2 border rounded-md bg-background"
                         >
                           <option value="Net 15">Net 15</option>
                           <option value="Net 30">Net 30</option>
@@ -436,7 +408,7 @@ export default function AllInvoices({ invoices, clients = [], stats, monthlyReve
                             <Input
                               value={formatCurrency((item.quantity || 0) * (item.rate || 0))}
                               disabled
-                              className="bg-gray-50"
+                              className="bg-muted"
                             />
                           </div>
                         </div>
@@ -466,7 +438,7 @@ export default function AllInvoices({ invoices, clients = [], stats, monthlyReve
                       </div>
                     </div>
 
-                    <div className="bg-gray-50 p-4 rounded-md space-y-2">
+                    <div className="bg-muted p-4 rounded-md space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Subtotal:</span>
                         <span>{formatCurrency(calculateSubtotal())}</span>
@@ -485,16 +457,16 @@ export default function AllInvoices({ invoices, clients = [], stats, monthlyReve
                       )}
                       <div className="flex justify-between font-bold text-lg pt-2 border-t">
                         <span>Total:</span>
-                        <span className="text-blue-600">{formatCurrency(calculateTotal())}</span>
+                        <span className="text-primary">{formatCurrency(calculateTotal())}</span>
                       </div>
                     </div>
-
+                    
                     <div>
                       <label className="block text-sm font-medium mb-2">Status *</label>
                       <select
                         value={form.status}
                         onChange={(e) => setForm({ ...form, status: e.target.value })}
-                        className="w-full px-3 py-2 border rounded-md"
+                        className="w-full px-3 py-2 border rounded-md bg-background"
                         required
                       >
                         <option value="unpaid">Unpaid</option>
@@ -540,121 +512,216 @@ export default function AllInvoices({ invoices, clients = [], stats, monthlyReve
             </div>
           </div>
 
-          {/* Search and Filters */}
-          <div className=" p-4 rounded-lg shadow-sm border border-gray-200 space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  type="text"
-                  placeholder="Search by invoice #, client, or status..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
-                <Filter className="w-4 h-4 mr-2" />
-                Filters
-              </Button>
-            </div>
+          {/* Stats Dashboard */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{formatCurrency(stats.total_revenue)}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  All time revenue
+                </p>
+              </CardContent>
+            </Card>
 
-            {showFilters && (
-              <form onSubmit={handleFilterSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Status</label>
-                  <select
-                    value={filterForm.status}
-                    onChange={(e) => setFilterForm({ ...filterForm, status: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-md"
-                  >
-                    <option value="">All Statuses</option>
-                    <option value="unpaid">Unpaid</option>
-                    <option value="paid">Paid</option>
-                    <option value="overdue">Overdue</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                <AlertCircle className="h-4 w-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-amber-600">{formatCurrency(stats.pending_amount)}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats.unpaid_invoices} unpaid invoices
+                </p>
+              </CardContent>
+            </Card>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Client</label>
-                  <select
-                    value={filterForm.client_key}
-                    onChange={(e) => setFilterForm({ ...filterForm, client_key: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-md"
-                  >
-                    <option value="">All Clients</option>
-                    {clients.map((client) => (
-                      <option key={client.id} value={client.key}>
-                        {client.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+                <AlertCircle className="h-4 w-4 text-red-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{formatCurrency(stats.overdue_amount)}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats.overdue_invoices} overdue invoices
+                </p>
+              </CardContent>
+            </Card>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Date From</label>
-                  <Input
-                    type="date"
-                    value={filterForm.date_from}
-                    onChange={(e) => setFilterForm({ ...filterForm, date_from: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Date To</label>
-                  <Input
-                    type="date"
-                    value={filterForm.date_to}
-                    onChange={(e) => setFilterForm({ ...filterForm, date_to: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Amount Min (₱)</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={filterForm.amount_min}
-                    onChange={(e) => setFilterForm({ ...filterForm, amount_min: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Amount Max (₱)</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={filterForm.amount_max}
-                    onChange={(e) => setFilterForm({ ...filterForm, amount_max: e.target.value })}
-                  />
-                </div>
-
-                <div className="md:col-span-3 flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={clearFilters}>
-                    Clear Filters
-                  </Button>
-                  <Button type="submit">Apply Filters</Button>
-                </div>
-              </form>
-            )}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">This Month</CardTitle>
+                <TrendingUp className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{formatCurrency(stats.this_month_revenue)}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stats.paid_invoices} paid invoices
+                </p>
+              </CardContent>
+            </Card>
           </div>
+
+          {/* Revenue Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Revenue Trend (Last 6 Months)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={monthlyRevenue}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="month" 
+                    stroke="hsl(var(--muted-foreground))"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <Tooltip 
+                    formatter={(value) => formatCurrency(value)}
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="revenue" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--primary))' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Search and Filters */}
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    type="text"
+                    placeholder="Search by invoice #, client, or status..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10 rounded-xl"
+                  />
+                </div>
+                <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="rounded-xl">
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filters
+                </Button>
+              </div>
+
+              {showFilters && (
+                <form onSubmit={handleFilterSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-border/50">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Status</label>
+                    <select
+                      value={filterForm.status}
+                      onChange={(e) => setFilterForm({ ...filterForm, status: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-background"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="unpaid">Unpaid</option>
+                      <option value="paid">Paid</option>
+                      <option value="overdue">Overdue</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Client</label>
+                    <select
+                      value={filterForm.client_key}
+                      onChange={(e) => setFilterForm({ ...filterForm, client_key: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md bg-background"
+                    >
+                      <option value="">All Clients</option>
+                      {clients.map((client) => (
+                        <option key={client.id} value={client.key}>
+                          {client.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Date From</label>
+                    <Input
+                      type="date"
+                      value={filterForm.date_from}
+                      onChange={(e) => setFilterForm({ ...filterForm, date_from: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Date To</label>
+                    <Input
+                      type="date"
+                      value={filterForm.date_to}
+                      onChange={(e) => setFilterForm({ ...filterForm, date_to: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Amount Min (₱)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={filterForm.amount_min}
+                      onChange={(e) => setFilterForm({ ...filterForm, amount_min: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Amount Max (₱)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={filterForm.amount_max}
+                      onChange={(e) => setFilterForm({ ...filterForm, amount_max: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="md:col-span-3 flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={clearFilters}>
+                      Clear Filters
+                    </Button>
+                    <Button type="submit">Apply Filters</Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Bulk Actions */}
           {selectedInvoices.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg flex items-center justify-between">
+            <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl flex items-center justify-between">
               <span className="text-sm font-medium">
                 {selectedInvoices.length} invoice(s) selected
               </span>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('paid')}>
+                <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('paid')} className="rounded-xl">
                   <CheckCircle className="w-4 h-4 mr-1" />
                   Mark Paid
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('unpaid')}>
+                <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('unpaid')} className="rounded-xl">
                   Mark Unpaid
                 </Button>
-                <Button size="sm" variant="outline" onClick={bulkDelete} className="text-red-600">
+                <Button size="sm" variant="outline" onClick={bulkDelete} className="text-red-600 rounded-xl">
                   <Trash2 className="w-4 h-4 mr-1" />
                   Delete
                 </Button>
@@ -663,109 +730,112 @@ export default function AllInvoices({ invoices, clients = [], stats, monthlyReve
           )}
 
           {/* Table */}
-          <div className=" border rounded-lg overflow-hidden shadow-sm">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedInvoices.length === filteredInvoices.length && filteredInvoices.length > 0}
-                      onChange={toggleSelectAll}
-                      className="rounded"
-                    />
-                  </th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-gray-700">Invoice #</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-gray-700">Client</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-gray-700">Date</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-gray-700">Due Date</th>
-                  <th className="text-right px-4 py-3 text-sm font-semibold text-gray-700">Amount</th>
-                  <th className="text-left px-4 py-3 text-sm font-semibold text-gray-700">Status</th>
-                  <th className="text-right px-4 py-3 text-sm font-semibold text-gray-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filteredInvoices.length === 0 ? (
+          <Card>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/30 border-b">
                   <tr>
-                    <td colSpan={8} className="text-center py-8 text-gray-500">
-                      No invoices found
-                    </td>
+                    <th className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedInvoices.length === filteredInvoices.length && filteredInvoices.length > 0}
+                        onChange={toggleSelectAll}
+                        className="rounded"
+                      />
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-semibold">Invoice #</th>
+                    <th className="text-left px-4 py-3 text-sm font-semibold">Client</th>
+                    <th className="text-left px-4 py-3 text-sm font-semibold">Date</th>
+                    <th className="text-left px-4 py-3 text-sm font-semibold">Due Date</th>
+                    <th className="text-right px-4 py-3 text-sm font-semibold">Amount</th>
+                    <th className="text-left px-4 py-3 text-sm font-semibold">Status</th>
+                    <th className="text-right px-4 py-3 text-sm font-semibold">Actions</th>
                   </tr>
-                ) : (
-                  filteredInvoices.map((invoice: { id: React.Key | null | undefined; invoice_number: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; clientKey: { key: any; name: string | number | bigint | boolean | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | Promise<string | number | bigint | boolean | React.ReactPortal | React.ReactElement<unknown, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | null | undefined> | null | undefined; }; invoice_date: any; is_overdue: any; due_date: any; amount: any; status: string; }) => (
-                    <tr key={invoice.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedInvoices.includes(invoice.id)}
-                          onChange={() => toggleSelectInvoice(invoice.id)}
-                          className="rounded"
-                        />
-                      </td>
-                      <td className="px-4 py-3 font-medium">{invoice.invoice_number}</td>
-                      <td className="px-4 py-3">
-                        {invoice.clientKey ? (
-                          <Link
-                            href={`/admin/clients/${invoice.clientKey.key}/invoices`}
-                            className="text-blue-600 hover:underline"
-                          >
-                            {invoice.clientKey.name}
-                          </Link>
-                        ) : (
-                          <span className="text-gray-400">No client</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">{formatDate(invoice.invoice_date)}</td>
-                      <td className="px-4 py-3 text-gray-600">
-                        {invoice.is_overdue ? (
-                          <span className="text-red-600 font-medium">{formatDate(invoice.due_date)}</span>
-                        ) : (
-                          formatDate(invoice.due_date)
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold">{formatCurrency(invoice.amount)}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                            invoice.status === "paid"
-                              ? "bg-green-100 text-green-800"
-                              : invoice.status === "unpaid"
-                              ? "bg-yellow-100 text-yellow-800"
-                              : invoice.status === "overdue"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {invoice.status?.charAt(0).toUpperCase() + invoice.status?.slice(1)}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-1">
-                          <Link href={`/admin/invoices/${invoice.id}`}>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(`/admin/invoices/${invoice.id}/pdf`, '_blank')}
-                          >
-                            <FileText className="w-4 h-4" />
-                          </Button>
-                        </div>
+                </thead>
+                <tbody className="divide-y">
+                  {filteredInvoices.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="text-center py-8 text-muted-foreground">
+                        No invoices found
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    filteredInvoices.map((invoice: any) => (
+                      <tr key={invoice.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedInvoices.includes(invoice.id)}
+                            onChange={() => toggleSelectInvoice(invoice.id)}
+                            className="rounded"
+                          />
+                        </td>
+                        <td className="px-4 py-3 font-medium">{invoice.invoice_number}</td>
+                          <td className="px-4 py-3">
+                            {invoice.client_key_id ? (
+                              <div className="font-medium hover:underline cursor-pointer">                 
+                                # {invoice.client_key_id}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">No client</span>
+                            )}
+                          </td>
+                        <td className="px-4 py-3 text-muted-foreground">{formatDate(invoice.invoice_date)}</td>
+                        <td className="px-4 py-3">
+                          {invoice.is_overdue ? (
+                            <span className="text-red-600 font-medium">{formatDate(invoice.due_date)}</span>
+                          ) : (
+                            <span className="text-muted-foreground">{formatDate(invoice.due_date)}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right font-semibold">{formatCurrency(invoice.amount)}</td>
+                        <td className="px-4 py-3">
+                          <Badge className={`${getStatusColor(invoice.status)} border text-[10px] px-2 py-0.5`}>
+                            {invoice.status?.charAt(0).toUpperCase() + invoice.status?.slice(1)}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex justify-end gap-1">
+                            <Link href={`/admin/invoices/${invoice.id}`}>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(`/admin/invoices/${invoice.id}/pdf`, '_blank')}
+                            >
+                              <FileText className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
           {/* Pagination */}
-          <div className="flex justify-end">
-       
-          
-          </div>
+          {invoices.last_page > 1 && (
+            <div className="flex justify-center gap-2">
+              {Array.from({ length: invoices.last_page }, (_, i) => i + 1).map((page) => (
+                <Link
+                  key={page}
+                  href={`/admin/invoices?page=${page}`}
+                  className={`px-4 py-2 border rounded-xl transition-colors ${
+                    page === invoices.current_page
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background hover:bg-muted"
+                  }`}
+                >
+                  {page}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>
