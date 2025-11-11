@@ -241,6 +241,8 @@ export default function Index({ projects }: Props) {
             </Card>
           </div>
 
+          {/* Add Task Feature */}
+          
           {/* Projects Grid */}
           {projects.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24">

@@ -62,8 +62,9 @@ class ClientKey extends Model
     /**
      * Get the invoices for this client key
      */
-    public function invoices()
-    {
-        return $this->hasMany(Invoice::class);
-    }
+
+        public function invoices()
+        {
+            return $this->hasMany(Invoice::class, 'client_key_id', 'key');
+        }
 }

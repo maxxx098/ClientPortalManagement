@@ -126,7 +126,9 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
 
     // Client Invoices Management
     Route::get('/invoices', [ClientInvoiceController::class, 'index'])->name('invoices.index');
+    Route::get('/invoices/{invoice}/download', [ClientInvoiceController::class, 'downloadPdf'])->name('invoices.download');
     Route::get('/invoices/{invoice}', [ClientInvoiceController::class, 'show'])->name('invoices.show');
+    Route::get('/invoices/{invoice}/pdf', [ClientInvoiceController::class, 'downloadPdf'])->name('invoices.pdf');
 });
 
 require __DIR__.'/settings.php';

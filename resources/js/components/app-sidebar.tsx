@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, FolderKanban, KeyRound, LayoutGrid, ProjectorIcon, TagsIcon } from 'lucide-react';
+import { BookOpen, Folder, FolderKanban, KeyRound, LayoutGrid, PenBoxIcon, ProjectorIcon, TagsIcon } from 'lucide-react';
 import AppLogo from './app-logo';
 import { usePage } from '@inertiajs/react';
 import projects from '@/routes/admin/projects';
@@ -21,6 +21,7 @@ import clientKeys from '@/routes/admin/client-keys';
 import adminTasks from '@/routes/admin/tasks';
 import clientTasks from '@/routes/client/tasks';
 import adminInvoices from '@/routes/admin/invoices/index';
+import clientInvoices from '@/routes/client/invoices/index';
 import { dashboard } from '@/routes';
 
 export function AppSidebar() {
@@ -84,6 +85,13 @@ export function AppSidebar() {
       href: clientTasks.index.url(),
       icon: TagsIcon,
     });
+
+      mainNavItems.push({
+      title: "Invoices",
+      href: clientInvoices.index.url(),
+      icon: PenBoxIcon,
+    });
+
     
     console.log('Adding CLIENT Projects nav item');
     // Client Projects Route

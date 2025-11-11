@@ -35,9 +35,8 @@ class Invoice extends Model
 
     public function clientKey()
     {
-        return $this->belongsTo(ClientKey::class);
+        return $this->belongsTo(ClientKey::class, 'client_key_id', 'key');
     }
-
     public function payments()
     {
         return $this->hasMany(Payments::class);
