@@ -13,7 +13,7 @@ createInertiaApp({
         resolvePageComponent(
             `./pages/${name}.tsx`,
             import.meta.glob('./pages/**/*.tsx'), // Vite's glob import
-        ),
+        ), 
     setup({ el, App, props }) {
         const root = createRoot(el);
 
