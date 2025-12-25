@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
 import AppLayout from "@/layouts/app-layout"
+import TaskSidebar from "@/components/ui/TaskSidebar"
 import { 
   ArrowLeft, 
   Calendar, 
@@ -19,8 +20,23 @@ import {
   CheckCircle2,
   AlertCircle,
   Download,
-  Image
+  Image,
+  ListTodo
 } from "lucide-react"
+import { useState } from "react"
+
+interface Task {
+  id: number
+  title: string
+  description?: string
+  status: "todo" | "in_progress" | "done"
+  progress_status?: "on_track" | "at_risk" | "off_track"
+  client_key_id?: string
+  file?: string | null
+  voice_message?: string | null
+  due_date?: string | null
+  created_at: string
+}
 
 interface Project {
   id: number
@@ -40,9 +56,14 @@ interface Project {
 
 interface Props {
   project: Project
+  tasks?: Task[]
 }
 
-export default function ProjectShow({ project }: Props) {
+export default function ProjectShow({ project, tasks = [] }: Props) {
+  const [taskSidebarOpen, setTaskSidebarOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [sidebarMode, setSidebarMode] = useState<"view" | "edit" | "create">("view")
+
   const priorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case "high":
@@ -65,6 +86,19 @@ export default function ProjectShow({ project }: Props) {
       case "on_hold":
         return "bg-orange-500/10 text-orange-400 border-orange-500/20"
       case "planned":
+        return "bg-blue-500/10 text-blue-400 border-blue-500/20"
+      default:
+        return "bg-slate-500/10 text-slate-400 border-slate-500/20"
+    }
+  }
+
+  const taskStatusColor = (status: string) => {
+    switch (status) {
+      case "done":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+      case "in_progress":
+        return "bg-amber-500/10 text-amber-400 border-amber-500/20"
+      case "todo":
         return "bg-blue-500/10 text-blue-400 border-blue-500/20"
       default:
         return "bg-slate-500/10 text-slate-400 border-slate-500/20"
@@ -97,11 +131,31 @@ export default function ProjectShow({ project }: Props) {
 
   const daysUntilDue = getDaysUntilDue()
 
+  const handleViewTask = (task: Task) => {
+    setSelectedTask(task)
+    setSidebarMode("view")
+    setTaskSidebarOpen(true)
+  }
+
+  const closeSidebar = () => {
+    setTaskSidebarOpen(false)
+    setSelectedTask(null)
+  }
+
+  const todoTasks = tasks.filter(t => t.status === "todo")
+  const inProgressTasks = tasks.filter(t => t.status === "in_progress")
+  const doneTasks = tasks.filter(t => t.status === "done")
+
   return (
     <AppLayout>
       <Head title={project.name} />
 
-      <div className="min-h-screen">
+      <div 
+        className="min-h-screen transition-[margin-right] duration-300 ease-linear"
+        style={{
+          marginRight: taskSidebarOpen ? '24rem' : '0'
+        }}
+      >
         <div className="container mx-auto p-6 lg:p-8 space-y-6">
           <div className="flex flex-col gap-4">
             <Button
@@ -223,6 +277,125 @@ export default function ProjectShow({ project }: Props) {
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">
                     {project.description || "No description provided for this project."}
                   </p>
+                </CardContent>
+              </Card>
+
+              {/* Tasks Section */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ListTodo className="h-5 w-5 text-primary" />
+                      <CardTitle>Project Tasks</CardTitle>
+                    </div>
+                  </div>
+                  <CardDescription>Tasks related to this project</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {tasks.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <ListTodo className="w-12 h-12 opacity-30 mx-auto mb-3" />
+                      <p className="text-sm">No tasks yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* To Do */}
+                      {todoTasks.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                            To Do ({todoTasks.length})
+                          </h4>
+                          <div className="space-y-2">
+                            {todoTasks.map((task) => (
+                              <div
+                                key={task.id}
+                                onClick={() => handleViewTask(task)}
+                                className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border border-border/50"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1">
+                                    <p className="font-medium text-sm">{task.title}</p>
+                                    {task.due_date && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Due: {formatDate(task.due_date)}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <Badge variant="outline" className={taskStatusColor(task.status)}>
+                                    To Do
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* In Progress */}
+                      {inProgressTasks.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                            In Progress ({inProgressTasks.length})
+                          </h4>
+                          <div className="space-y-2">
+                            {inProgressTasks.map((task) => (
+                              <div
+                                key={task.id}
+                                onClick={() => handleViewTask(task)}
+                                className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border border-border/50"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1">
+                                    <p className="font-medium text-sm">{task.title}</p>
+                                    {task.due_date && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Due: {formatDate(task.due_date)}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <Badge variant="outline" className={taskStatusColor(task.status)}>
+                                    In Progress
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Done */}
+                      {doneTasks.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                            Done ({doneTasks.length})
+                          </h4>
+                          <div className="space-y-2">
+                            {doneTasks.map((task) => (
+                              <div
+                                key={task.id}
+                                onClick={() => handleViewTask(task)}
+                                className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border border-border/50"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1">
+                                    <p className="font-medium text-sm line-through opacity-70">{task.title}</p>
+                                    {task.due_date && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Due: {formatDate(task.due_date)}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <Badge variant="outline" className={taskStatusColor(task.status)}>
+                                    Done
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -416,6 +589,26 @@ export default function ProjectShow({ project }: Props) {
               </Card>
             </div>
           </div>
+        </div>
+
+        {/* Task Sidebar - Fixed position, slides in from right */}
+        <div
+          className={`fixed right-0 top-0 h-full w-96 transform transition-transform duration-300 ease-linear z-[100] ${
+            taskSidebarOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          <TaskSidebar
+            isOpen={taskSidebarOpen}
+            task={selectedTask}
+            mode={sidebarMode}
+            isLoading={false}
+            onClose={closeSidebar}
+            onSave={() => {}}
+            userRole="client"
+            isAdmin={false}
+            clientKey={project.client_key_id}
+            routePrefix="/client"
+          />
         </div>
       </div>
     </AppLayout>
