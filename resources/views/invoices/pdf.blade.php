@@ -87,7 +87,7 @@
                 <td style="width: 50%;">
                     <strong>Bill To:</strong><br>
                     {{ $invoice->clientKey->name ?? 'N/A' }}<br>
-                    @if($invoice->clientKey->email)
+                    @if($invoice->clientKey && $invoice->clientKey->email)
                         {{ $invoice->clientKey->email }}<br>
                     @endif
                 </td>

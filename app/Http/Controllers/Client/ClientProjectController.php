@@ -41,8 +41,11 @@ class ClientProjectController extends Controller
             abort(403, 'Unauthorized access to this project.');
         }
 
+        $tasks = $project->tasks()->latest()->get();
+
         return Inertia::render('client/projects/show', [
             'project' => $project,
+            'tasks' => $tasks,
         ]);
     }
 

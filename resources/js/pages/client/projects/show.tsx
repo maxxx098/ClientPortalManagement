@@ -21,9 +21,13 @@ import {
   AlertCircle,
   Download,
   Image,
-  ListTodo
+  ListTodo,
+  PenBox
 } from "lucide-react"
 import { useState } from "react"
+import { SidebarInset } from "@/components/ui/sidebar"
+import { AppShell } from "@/components/app-shell"
+import { AppSidebar } from "@/components/app-sidebar"
 
 interface Task {
   id: number
@@ -62,6 +66,7 @@ interface Props {
 export default function ProjectShow({ project, tasks = [] }: Props) {
   const [taskSidebarOpen, setTaskSidebarOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
   const [sidebarMode, setSidebarMode] = useState<"view" | "edit" | "create">("view")
 
   const priorityColor = (priority: string) => {
@@ -141,21 +146,52 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
     setTaskSidebarOpen(false)
     setSelectedTask(null)
   }
+  
+  const handleTaskDelete = (taskId: number) => {
+    setIsProcessing(true)
+    router.delete(`/client/tasks/${taskId}`, {
+      preserveScroll: true,
+      onSuccess: () => {
+        setTaskSidebarOpen(false)
+        setSelectedTask(null)
+        setIsProcessing(false)
+      },
+      onError: () => {
+        setIsProcessing(false)
+      }
+    })
+  }
+
+  const handleSave = (formData: FormData) => {
+    setIsProcessing(true)
+    setTimeout(() => {
+      setIsProcessing(false)
+      setTaskSidebarOpen(false)
+      setSelectedTask(null)
+    }, 500)
+  }
 
   const todoTasks = tasks.filter(t => t.status === "todo")
   const inProgressTasks = tasks.filter(t => t.status === "in_progress")
   const doneTasks = tasks.filter(t => t.status === "done")
 
-  return (
-    <AppLayout>
-      <Head title={project.name} />
+  const handleEditTask = (task?: Task | null) => {
+    setSelectedTask(task || null);
+    setSidebarMode("edit");
+    setTaskSidebarOpen(true);
+  };
 
-      <div 
-        className="min-h-screen transition-[margin-right] duration-300 ease-linear"
-        style={{
-          marginRight: taskSidebarOpen ? '24rem' : '0'
-        }}
-      >
+  return (
+    <AppShell variant="sidebar">
+      <Head title={project.name} />
+     <AppSidebar />
+    <SidebarInset 
+      className="overflow-x-hidden transition-[margin-right] duration-300 ease-linear"
+      style={{
+        marginRight: taskSidebarOpen ? '24rem' : '0'
+      }}
+    >
+      <div className="min-h-screen relative">
         <div className="container mx-auto p-6 lg:p-8 space-y-6">
           <div className="flex flex-col gap-4">
             <Button
@@ -312,7 +348,7 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
                                 onClick={() => handleViewTask(task)}
                                 className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border border-border/50"
                               >
-                                <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center justify-between gap-3">
                                   <div className="flex-1">
                                     <p className="font-medium text-sm">{task.title}</p>
                                     {task.due_date && (
@@ -322,8 +358,20 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
                                     )}
                                   </div>
                                   <Badge variant="outline" className={taskStatusColor(task.status)}>
-                                    To Do
+                                    To Do {/* Change to "In Progress" or "Done" for other sections */}
                                   </Badge>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditTask(task);
+                                    }} 
+                                    className="gap-2"
+                                  >
+                                    <PenBox size={14} />
+                                    Edit
+                                  </Button>
                                 </div>
                               </div>
                             ))}
@@ -344,7 +392,7 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
                                 onClick={() => handleViewTask(task)}
                                 className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border border-border/50"
                               >
-                                <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center justify-between gap-3">
                                   <div className="flex-1">
                                     <p className="font-medium text-sm">{task.title}</p>
                                     {task.due_date && (
@@ -354,8 +402,20 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
                                     )}
                                   </div>
                                   <Badge variant="outline" className={taskStatusColor(task.status)}>
-                                    In Progress
+                                    In Progress {/* Change to "In Progress" or "Done" for other sections */}
                                   </Badge>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditTask(task);
+                                    }} 
+                                    className="gap-2"
+                                  >
+                                    <PenBox size={14} />
+                                    Edit
+                                  </Button>
                                 </div>
                               </div>
                             ))}
@@ -371,14 +431,14 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
                           </h4>
                           <div className="space-y-2">
                             {doneTasks.map((task) => (
-                              <div
+                           <div
                                 key={task.id}
                                 onClick={() => handleViewTask(task)}
                                 className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border border-border/50"
                               >
-                                <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center justify-between gap-3">
                                   <div className="flex-1">
-                                    <p className="font-medium text-sm line-through opacity-70">{task.title}</p>
+                                    <p className="font-medium text-sm">{task.title}</p>
                                     {task.due_date && (
                                       <p className="text-xs text-muted-foreground mt-1">
                                         Due: {formatDate(task.due_date)}
@@ -386,8 +446,20 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
                                     )}
                                   </div>
                                   <Badge variant="outline" className={taskStatusColor(task.status)}>
-                                    Done
+                                    Done {/* Change to "In Progress" or "Done" for other sections */}
                                   </Badge>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditTask(task);
+                                    }} 
+                                    className="gap-2"
+                                  >
+                                    <PenBox size={14} />
+                                    Edit
+                                  </Button>
                                 </div>
                               </div>
                             ))}
@@ -590,9 +662,10 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
             </div>
           </div>
         </div>
+        </div>
 
         {/* Task Sidebar - Fixed position, slides in from right */}
-        <div
+         <div
           className={`fixed right-0 top-0 h-full w-96 transform transition-transform duration-300 ease-linear z-[100] ${
             taskSidebarOpen ? "translate-x-0" : "translate-x-full"
           }`}
@@ -605,12 +678,12 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
             onClose={closeSidebar}
             onSave={() => {}}
             userRole="client"
-            isAdmin={false}
+            isAdmin={true}
             clientKey={project.client_key_id}
             routePrefix="/client"
           />
         </div>
-      </div>
-    </AppLayout>
+     </SidebarInset>
+    </AppShell>
   )
 }

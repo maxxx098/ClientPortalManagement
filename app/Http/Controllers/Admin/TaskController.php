@@ -34,92 +34,100 @@ class TaskController extends Controller
             'hasProjects' => Project::exists(),
         ]);
     }
-
-    /**
-     * Store a newly created task
+    
+    /**     * Store a newly created task
      */
+
     public function store(Request $request)
-    {
-        \Log::info('Admin TaskController Store: Incoming request', [
-            'all_data' => $request->all(),
-            'has_file' => $request->hasFile('file'),
-            'has_voice' => $request->has('voice_message'),
-            'progress_status' => $request->input('progress_status'),
-        ]);
+        {
+            \Log::info('Admin TaskController Store: Incoming request', [
+                'all_data' => $request->all(),
+                'has_file' => $request->hasFile('file'),
+                'has_voice' => $request->has('voice_message'),
+                'progress_status' => $request->input('progress_status'),
+            ]);
 
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'client_key_id' => 'required|exists:client_keys,key',
-            'voice_message' => 'nullable|string',
-            'due_date' => 'nullable|date',
-            'status' => 'nullable|in:todo,in_progress,done',
-            'file' => 'nullable|file|max:10240', // Max 10MB
-            'progress_status' => 'nullable|in:on_track,at_risk,off_track',
-        ]);
+            // Get the project's due date for validation
+            $project = Project::where('client_key_id', $request->client_key_id)->first();
+            
+            $validated = $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'client_key_id' => 'required|exists:client_keys,key',
+                'voice_message' => 'nullable|string',
+                'due_date' => [
+                    'nullable',
+                    'date',
+                    // Add validation to ensure task due date is before or equal to project due date
+                    $project && $project->due_date 
+                        ? 'before_or_equal:' . $project->due_date 
+                        : 'nullable'
+                ],
+                'status' => 'nullable|in:todo,in_progress,done',
+                'file' => 'nullable|file|max:10240',
+                'progress_status' => 'nullable|in:on_track,at_risk,off_track',
+            ], [
+                // Custom error message
+                'due_date.before_or_equal' => 'Task due date cannot be after the project due date (' . ($project ? $project->due_date : '') . ')',
+            ]);
 
-        $taskData = [
-            'title' => $validated['title'],
-            'description' => $validated['description'] ?? null,
-            'status' => $validated['status'] ?? 'todo',
-            'client_key_id' => $validated['client_key_id'],
-            'progress_status' => $validated['progress_status'] ?? 'on_track',
-        ];
+            // Rest of your code remains the same...
+            $taskData = [
+                'title' => $validated['title'],
+                'description' => $validated['description'] ?? null,
+                'status' => $validated['status'] ?? 'todo',
+                'client_key_id' => $validated['client_key_id'],
+                'progress_status' => $validated['progress_status'] ?? 'on_track',
+            ];
 
-        // Handle due_date - use provided date or calculate based on progress_status
-        if (!empty($validated['due_date'])) {
-            $taskData['due_date'] = $validated['due_date'];
-        } elseif (!empty($validated['progress_status'])) {
-            // Calculate due date based on progress status
-            $today = new \DateTime();
-            switch ($validated['progress_status']) {
-                case 'on_track':
-                    $today->modify('+14 days'); // 2 weeks
-                    break;
-                case 'at_risk':
-                    $today->modify('+5 days');
-                    break;
-                case 'off_track':
-                    $today->modify('+2 days');
-                    break;
+            if (!empty($validated['due_date'])) {
+                $taskData['due_date'] = $validated['due_date'];
+            } elseif (!empty($validated['progress_status'])) {
+                $today = new \DateTime();
+                switch ($validated['progress_status']) {
+                    case 'on_track':
+                        $today->modify('+14 days');
+                        break;
+                    case 'at_risk':
+                        $today->modify('+5 days');
+                        break;
+                    case 'off_track':
+                        $today->modify('+2 days');
+                        break;
+                }
+                $taskData['due_date'] = $today->format('Y-m-d');
             }
-            $taskData['due_date'] = $today->format('Y-m-d');
+
+            if ($request->has('voice_message') && !empty($validated['voice_message'])) {
+                $taskData['voice_message'] = $validated['voice_message'];
+            }
+            
+            if ($request->hasFile('file')) {
+                $filePath = $request->file('file')->store('tasks', 'public');
+                $taskData['file'] = $filePath;
+            }
+
+            \Log::info('Admin TaskController Store: Creating task', [
+                'task_data' => $taskData
+            ]);
+
+            $task = Task::create($taskData);
+
+            \Log::info('Admin TaskController Store: Task created successfully', [
+                'task_id' => $task->id,
+                'title' => $task->title,
+                'due_date' => $task->due_date,
+                'progress_status' => $validated['progress_status'] ?? 'not set'
+            ]);
+
+            $referer = $request->headers->get('referer');
+            if ($referer && strpos($referer, '/projects/') !== false) {
+                return back()->with('success', 'Task created successfully.');
+            }
+
+            return redirect()->route('admin.tasks.index')
+                ->with('success', 'Task created successfully.');
         }
-
-        // Handle voice message
-        if ($request->has('voice_message') && !empty($validated['voice_message'])) {
-            $taskData['voice_message'] = $validated['voice_message'];
-        }
-         
-        // Handle file upload
-        if ($request->hasFile('file')) {
-            $filePath = $request->file('file')->store('tasks', 'public');
-            $taskData['file'] = $filePath;
-        }
-
-        \Log::info('Admin TaskController Store: Creating task', [
-            'task_data' => $taskData
-        ]);
-
-        $task = Task::create($taskData);
-
-        \Log::info('Admin TaskController Store: Task created successfully', [
-            'task_id' => $task->id,
-            'title' => $task->title,
-            'due_date' => $task->due_date,
-            'progress_status' => $validated['progress_status'] ?? 'not set'
-        ]);
-
-        // Check if there's a referrer to go back to (e.g., project page)
-        $referer = $request->headers->get('referer');
-        if ($referer && strpos($referer, '/projects/') !== false) {
-            return back()->with('success', 'Task created successfully.');
-        }
-
-        return redirect()->route('admin.tasks.index')
-            ->with('success', 'Task created successfully.');
-    }
-
     /**
      * Show the form for editing the specified task
      */

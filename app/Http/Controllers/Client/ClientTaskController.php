@@ -191,8 +191,7 @@ class ClientTaskController extends Controller
                 'due_date' => $validated['due_date'] ?? $task->due_date,
             ]);
 
-            return redirect()->route('client.tasks.index')
-                ->with('success', 'Task updated successfully.');
+            return back()->with('success', 'Task updated successfully.');
         }
     }
 
