@@ -10,7 +10,16 @@ import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { SidebarInset } from '@/components/ui/sidebar';
 import { Card } from "@/components/ui/card";
 import { router } from "@inertiajs/react";
-import { FolderKanban, Key } from "lucide-react";
+import { FolderKanban, Key, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 // ============================================================================
 // TYPES
@@ -27,6 +36,7 @@ interface Task {
   file?: string | null;
   voice_message?: string | null;
   due_date?: string | null;
+
 }
 
 // ============================================================================
@@ -38,6 +48,7 @@ export default function Index({
   clients = [], 
   client_key_id, 
   auth,
+  project,
   hasClientKeys = true,
   hasProjects = true
 }: {
@@ -50,6 +61,7 @@ export default function Index({
       role: string;
     }
   };
+  project?: { due_date: string };
   hasClientKeys?: boolean;
   hasProjects?: boolean;
 }) {
@@ -69,6 +81,7 @@ export default function Index({
   const [progressStatus, setProgressStatus] = useState<'on_track' | 'at_risk' | 'off_track' | null>(null);
 
   const routePrefix = auth.user.role === 'admin' ? '/admin' : '/client';
+  const [showDueDateAlert, setShowDueDateAlert] = useState(false);
 
   React.useEffect(() => {
     setOptimisticTasks(initialTasks);
@@ -156,16 +169,6 @@ export default function Index({
     }
   };
 
-  const handleSave = (formData: FormData) => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      setSidebarOpen(false);
-      setSelectedTask(null);
-      setProgressStatus(null);
-    }, 500);
-  };
-
   const handleUpdateStatus = (taskId: number, status: Task["status"]) => {
     // Optimistically update the UI immediately
     setOptimisticTasks(prev => 
@@ -198,6 +201,15 @@ export default function Index({
     setProgressStatus(null);
   };
 
+    const formatDate = (date: string) => {
+    if (!date) return "Not set"
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  }
+
   return (
     <AppShell variant="sidebar">
       <AppSidebar />
@@ -228,21 +240,22 @@ export default function Index({
             sidebarOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
-          <TaskSidebar
-            isOpen={sidebarOpen}
-            task={selectedTask}
-            mode={sidebarMode}
-            isLoading={isProcessing}
-            onClose={closeSidebar}
-            onSave={handleSave}
-            onDelete={handleDelete}
-            clients={clients}
-            userRole={auth.user.role}
-            isAdmin={auth.user.role === "admin"}
-            clientKey={client_key_id}
-            currentUserId={auth.user.id}
-            routePrefix={routePrefix}
-          />
+         <TaskSidebar
+          isOpen={sidebarOpen}
+          task={selectedTask}
+          mode={sidebarMode}
+          isLoading={isProcessing}
+          onClose={closeSidebar}
+          onDelete={handleDelete}
+          clients={clients}
+          userRole={auth.user.role}
+          isAdmin={auth.user.role === "admin"}
+          clientKey={client_key_id}
+          currentUserId={auth.user.id}
+          routePrefix={routePrefix}
+          projectDueDate={project?.due_date}
+          onDueDateError={() => setShowDueDateAlert(true)}
+        />
         </div>
 
         {/* Delete Confirmation Dialog */}
@@ -272,6 +285,35 @@ export default function Index({
           </div>
         )}
       </SidebarInset>
+
+      {/* Backdrop Overlay */}
+      {showDueDateAlert && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[199]" />
+      )}
+
+      {/* Alert Dialog */}
+      <AlertDialog open={showDueDateAlert} onOpenChange={setShowDueDateAlert}>
+        <AlertDialogContent className="z-[200]">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+              </div>
+              <AlertDialogTitle className="text-lg font-semibold">
+                Invalid Due Date
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-sm text-muted-foreground">
+          The task due date cannot be later than the project due date ({project?.due_date ? formatDate(project.due_date) : 'N/A'}). Please select a valid due date.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowDueDateAlert(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   );
 }

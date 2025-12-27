@@ -36,6 +36,8 @@ interface TaskSidebarProps {
   routePrefix?: string;
   onSave?: (taskData: any) => void;
   onDelete?: (taskId: number) => void;
+  projectDueDate?: string | null;
+  onDueDateError?: () => void;
 }
 
 export default function TaskSidebar({
@@ -49,7 +51,11 @@ export default function TaskSidebar({
   isAdmin = false,
   clientKey = "",
   currentUserId = 0,
-  routePrefix = "/admin"
+  routePrefix = "/admin",
+  projectDueDate = null,
+
+  onDueDateError,
+  onDelete
 }: TaskSidebarProps) {
   const [inputMode, setInputMode] = React.useState<"text" | "voice">("text");
   const [isRecording, setIsRecording] = React.useState(false);
@@ -61,6 +67,7 @@ export default function TaskSidebar({
     description: "",
     client_key_id: "",
     due_date: "",
+    started_at: "",
     status: "todo" as "todo" | "in_progress" | "done",
     file: null as File | null,
     voice_message: "",
@@ -130,71 +137,81 @@ export default function TaskSidebar({
   };
 
   const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!data.title?.trim()) {
+  if (!data.title?.trim()) {
+    return;
+  }
+
+  if (userRole === "admin" && !data.client_key_id && !clientKey) {
+    return;
+  }
+
+  // Check if task due date exceeds project due date
+  if (data.due_date && projectDueDate) {
+    const taskDate = new Date(data.due_date);
+    const taskStartDate = new Date(data.started_at || "");
+    const projDate = new Date(projectDueDate);
+    
+    if (taskDate > projDate) {
+      onDueDateError?.();
       return;
     }
+  }
 
-    if (userRole === "admin" && !data.client_key_id && !clientKey) {
-      return;
-    }
+  const formData = new FormData();
+  formData.append("title", data.title);
+  formData.append("description", data.description || "");
+  formData.append("status", data.status || "todo");
+  formData.append("due_date", data.due_date || "");
+  formData.append("started_at", data.started_at || "");
+  
+  if (data.client_key_id || clientKey) {
+    formData.append("client_key_id", data.client_key_id || clientKey);
+  }
+  
+  if (data.file) {
+    formData.append("file", data.file);
+  }
+  
+  if (inputMode === "voice" && data.voice_message) {
+    formData.append("voice_message", data.voice_message);
+  }
 
-    const formData = new FormData();
-    formData.append("title", data.title);
-    formData.append("description", data.description || "");
-    formData.append("status", data.status || "todo");
-    formData.append("due_date", data.due_date || "");
-    
-    if (data.client_key_id || clientKey) {
-      formData.append("client_key_id", data.client_key_id || clientKey);
-    }
-    
-    if (data.file) {
-      formData.append("file", data.file);
-    }
-    
-    if (inputMode === "voice" && data.voice_message) {
-      formData.append("voice_message", data.voice_message);
-    }
-
-    if (mode === "edit" && task) {
-      formData.append("_method", "PATCH");
-      router.post(`${routePrefix}/tasks/${task.id}`, formData, {
-        preserveScroll: true,
-        onSuccess: () => {
-          reset();
-          onClose();
-          setInputMode("text");
-          setVoiceRecorded(false);
-          clearErrors();
-        },
-      });
-    } else {
-      router.post(`${routePrefix}/tasks`, formData, {
-        preserveScroll: true,
-        onSuccess: () => {
-          reset();
-          onClose();
-          setInputMode("text");
-          setVoiceRecorded(false);
-          clearErrors();
-        },
-      });
-    }
-  };
- 
-  // delete handler
- const handleDelete = () => {
-    if (task) {
-      onDelete(task.id); // Use the prop instead of router.delete directly
-      // onClose(); will be called from parent after successful deletion
-    }
-  };
-
-  if (!isOpen) return null;
+  if (mode === "edit" && task) {
+    formData.append("_method", "PATCH");
+    router.post(`${routePrefix}/tasks/${task.id}`, formData, {
+      preserveScroll: true,
+      onSuccess: () => {
+        reset();
+        onClose();
+        setInputMode("text");
+        setVoiceRecorded(false);
+        clearErrors();
+      },
+    });
+  } else {
+    router.post(`${routePrefix}/tasks`, formData, {
+      preserveScroll: true,
+      onSuccess: () => {
+        reset();
+        onClose();
+        setInputMode("text");
+        setVoiceRecorded(false);
+        clearErrors();
+      },
+    });
+  }
+};
 
   const isViewMode = mode === "view";
+
+const handleDelete = () => {
+  if (task && onDelete) {
+    onDelete(task.id);
+  }
+};
+
 
   return (
     <div className="fixed right-0 top-0 bottom-0 w-full sm:w-96 z-40 flex flex-col">
@@ -310,12 +327,41 @@ export default function TaskSidebar({
         {isViewMode && task?.voice_message && (
           <div className="space-y-2">
             <Label className="text-gray-300">Voice Message</Label>
-            <audio controls className="w-full rounded">
-              <source src={task.voice_message} type="audio/webm" />
-            </audio>
+            <div 
+              className="w-full"
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
+              <audio 
+                controls 
+                className="w-full rounded"
+                preload="metadata"
+              >
+                <source 
+                  src={`/storage/${task.voice_message}`}
+                  type="audio/webm" 
+                />
+                <source 
+                  src={`/storage/${task.voice_message}`}
+                  type="audio/mpeg" 
+                />
+                Your browser does not support the audio element.
+              </audio>
+            </div>
           </div>
         )}
-
+        {/* Start Date */}
+        <div className="space-y-2">
+          <Label htmlFor="started_at" className="text-gray-300">Start Date</Label>
+          <Input
+            id="started_at"
+            type="date"
+            value={data.started_at || ""}
+            onChange={(e) => setData("started_at", e.target.value)}
+            disabled={isViewMode}
+            className="text-white"
+          />
+        </div>
         {/* Due Date */}
         <div className="space-y-2">
           <Label htmlFor="due_date" className="text-gray-300">Due Date</Label>
@@ -425,8 +471,4 @@ export default function TaskSidebar({
       </div>
     </div>
   );
-}
-
-function onDelete(id: number) {
-  throw new Error("Function not implemented.");
 }

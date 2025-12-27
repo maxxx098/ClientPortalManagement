@@ -3,8 +3,14 @@
         Options -MultiViews -Indexes
     </IfModule>
 
-    RewriteEngine On
+RewriteEngine On
 
+# Follow symbolic links (IMPORTANT for storage symlink)
+Options +FollowSymLinks
+
+# Handle Authorization Header
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

@@ -15,7 +15,8 @@ return new class extends Migration
             $table->enum('status', ['todo', 'in_progress', 'done'])->default('todo');
             $table->string('file')->nullable();
             $table->date('due_date')->nullable();
-            $table->string('voice_message')->nullable(); 
+            $table->date('started_at')->nullable();
+            $table->string('voice_message', 255)->nullable(); 
             $table->string('client_key_id');
             $table->timestamps();
 

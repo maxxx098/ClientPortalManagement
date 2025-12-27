@@ -15,6 +15,7 @@ class Task extends Model
         'title',
         'description',
         'due_date',
+        'started_at',
         'status',
         'voice_message',
         'progress_status',

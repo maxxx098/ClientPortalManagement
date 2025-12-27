@@ -28,6 +28,16 @@ import { useState } from "react"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { AppShell } from "@/components/app-shell"
 import { AppSidebar } from "@/components/app-sidebar"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { AlertTriangle } from "lucide-react"
 
 interface Task {
   id: number
@@ -68,6 +78,7 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [sidebarMode, setSidebarMode] = useState<"view" | "edit" | "create">("view")
+  const [showDueDateAlert, setShowDueDateAlert] = useState(false)
 
   const priorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
@@ -670,20 +681,51 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
             taskSidebarOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
-          <TaskSidebar
-            isOpen={taskSidebarOpen}
-            task={selectedTask}
-            mode={sidebarMode}
-            isLoading={false}
-            onClose={closeSidebar}
-            onSave={() => {}}
-            userRole="client"
-            isAdmin={true}
-            clientKey={project.client_key_id}
-            routePrefix="/client"
-          />
+         <TaskSidebar
+          isOpen={taskSidebarOpen}
+          task={selectedTask}
+          mode={sidebarMode}
+          isLoading={false}
+          onClose={closeSidebar}
+          onSave={() => {}}
+          userRole="client"
+          isAdmin={true}
+          clientKey={project.client_key_id}
+          routePrefix="/client"
+          projectDueDate={project.due_date}
+          onDueDateError={() => setShowDueDateAlert(true)}
+          onDelete={handleTaskDelete}
+        />
         </div>
      </SidebarInset>
-    </AppShell>
+         {/* Backdrop Overlay */}
+    {showDueDateAlert && (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[199]" />
+    )}
+
+    {/* Alert Dialog */}
+    <AlertDialog open={showDueDateAlert} onOpenChange={setShowDueDateAlert}>
+      <AlertDialogContent className="z-[200]">
+        <AlertDialogHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+            </div>
+            <AlertDialogTitle className="text-lg font-semibold">
+              Invalid Due Date
+            </AlertDialogTitle>
+          </div>
+          <AlertDialogDescription className="text-sm text-muted-foreground">
+            The task due date cannot be later than the project due date ({formatDate(project.due_date)}). Please select a valid due date.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction onClick={() => setShowDueDateAlert(false)}>
+            OK
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+   </AppShell>
   )
 }
