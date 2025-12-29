@@ -13,7 +13,7 @@ class UnlockStaleClientKeys extends Command
     public function handle()
     {
         $count = ClientKey::where('locked', true)
-            ->where('locked_at', '<', now()->subMinutes(30))
+            ->where('locked_at', '<', now()->subMinutes(1))
             ->update(['locked' => false, 'locked_at' => null]);
 
         $this->info("Unlocked {$count} stale client keys.");
