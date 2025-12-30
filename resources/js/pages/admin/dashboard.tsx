@@ -330,7 +330,8 @@ export default function Index({
               />
               <Area 
                 type="monotone" 
-                dataKey="none" 
+                dataKey="success" 
+                stroke="#8b5cf6" 
                 fillOpacity={1} 
                 fill="url(#colorSuccess)" 
                 strokeWidth={2}
