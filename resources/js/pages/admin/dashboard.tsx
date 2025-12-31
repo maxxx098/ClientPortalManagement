@@ -20,7 +20,12 @@ import {
   Filter,
   ExternalLink,
   MessageSquare,
-  ArrowDownRight
+  ArrowDownRight,
+  ArrowDown,
+  ArrowDown01Icon,
+  ChevronDown,
+  AlarmCheck,
+  AlarmClock
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import AppLayout from '@/layouts/app-layout';
@@ -218,146 +223,312 @@ export default function Index({
   }, []);
 
   // Credit Score Gauge Component
-  const CreditScoreGauge = () => {
-    const data = [
-      { name: 'Progress', value: taskCompletionRate },
-      { name: 'Remaining', value: 100 - taskCompletionRate }
-    ];
-
-    return (
-      <div className="bg-white/[0.02] backdrop-blur-xl border border-white/5 p-6 rounded-3xl flex flex-col items-center h-full">
-        <h3 className="text-xs font-semibold text-gray-400 self-start mb-4 uppercase tracking-wider">Performance Score</h3>
-        
-        <div className="w-full h-40 relative flex items-center justify-center">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="80%"
-                startAngle={180}
-                endAngle={0}
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={0}
-                dataKey="value"
-                stroke="none"
-              >
-                <Cell fill="#a855f7" />
-                <Cell fill="#1f2937" />
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-          
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-0 text-center">
-            <span className="text-4xl font-bold block bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{taskCompletionRate}%</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4 w-full mt-6">
-          <div className="text-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 mx-auto mb-2"></div>
-            <p className="text-[10px] text-gray-400">Completed</p>
-            <p className="text-xs font-bold">{stats.tasks.completed}</p>
-          </div>
-          <div className="text-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mx-auto mb-2"></div>
-            <p className="text-[10px] text-gray-400">In Progress</p>
-            <p className="text-xs font-bold">{stats.tasks.in_progress}</p>
-          </div>
-          <div className="text-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-pink-500 mx-auto mb-2"></div>
-            <p className="text-[10px] text-gray-400">Pending</p>
-            <p className="text-xs font-bold">{stats.tasks.pending}</p>
-          </div>
-        </div>
-
-        <button className="mt-6 px-4 py-2 rounded-full border border-white/10 text-[10px] flex items-center gap-2 hover:bg-white/5 transition-colors">
-          <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
-          {taskCompletionRate >= 75 ? 'Excellent Performance' : taskCompletionRate >= 50 ? 'Good Progress' : 'Keep Going'}
-        </button>
-      </div>
-    );
+const CreditScoreGauge = () => {
+  // Gauge configuration
+  const center = 100;
+  const radius = 80;
+  const strokeWidth = 10;
+  
+  // Helper to calculate arc path
+  const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
+    const start = polarToCartesian(x, y, radius, endAngle);
+    const end = polarToCartesian(x, y, radius, startAngle);
+    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+    return [
+      "M", start.x, start.y, 
+      "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
+    ].join(" ");
   };
+
+  const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
+    const angleInRadians = (angleInDegrees - 180) * Math.PI / 180.0;
+    return {
+      x: centerX + (radius * Math.cos(angleInRadians)),
+      y: centerY + (radius * Math.sin(angleInRadians))
+    };
+  };
+
+  // Generate tick dots
+  const ticks = [];
+  for (let i = 0; i <= 20; i++) {
+    const angle = (i / 20) * 180;
+    const pos = polarToCartesian(center, center + 30, radius - 15, angle);
+    ticks.push(<circle key={i} cx={pos.x} cy={pos.y} r="0.5" fill="white" />);
+  }
+
+  // Calculate marker position based on completion rate
+  const markerAngle = (taskCompletionRate / 100) * 180;
+  const thumbPos = polarToCartesian(center, center + 30, radius, markerAngle);
+
+  return (
+    <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 p-5 rounded-3xl flex flex-col items-center h-full">
+      <h3 className="text-[11px] font-medium text-gray-500 self-start mb-6 uppercase tracking-widest">Performance Score</h3>
+      
+      <div className="w-full aspect-[4/3] relative flex items-center justify-center -mt-4">
+        <svg viewBox="0 0 200 150" className="w-full h-full">
+          {/* Inner dots pattern */}
+          {ticks}
+          
+          {/* Segment 1: Gold (Left) */}
+          <path
+            d={describeArc(center, center + 30, radius, 0, 54)}
+            fill="none"
+            stroke="#d97706"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+          />
+          
+          {/* Segment 2: Purple (Middle) */}
+          <path
+            d={describeArc(center, center + 30, radius, 66, 114)}
+            fill="none"
+            stroke="#a855f7"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+          />
+          
+          {/* Segment 3: Blue (Right) */}
+          <path
+            d={describeArc(center, center + 30, radius, 126, 180)}
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+          />
+
+        </svg>
+        
+        <div className="absolute top-[62%] left-1/2 -translate-x-1/2 text-center">
+          <span className="text-6xl font-semibold text-white tracking-tighter">{taskCompletionRate}%</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 w-full mt-2">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-1.5 mb-1.5">
+            <div className="w-1 h-3 rounded-full bg-amber-600"></div>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Productivity</p>
+          </div>
+          <p className="text-xs font-bold">{stats.tasks.completed}</p>
+        </div>
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-1.5 mb-1.5">
+            <div className="w-1 h-3 rounded-full bg-purple-500"></div>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Punctuality</p>
+          </div>
+          <p className="text-xs font-bold">{stats.tasks.in_progress}</p>
+        </div>
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-1.5 mb-1.5">
+            <div className="w-1 h-3 rounded-full bg-blue-500"></div>
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Creativity</p>
+          </div>
+          <p className="text-xs font-bold">{stats.tasks.pending}</p>
+        </div>
+      </div>
+
+      <button className="mt-10 px-10 py-2 rounded-full bg-white/[0.03] border border-white/[0.04] text-[13px] font-bold text-gray-300 flex items-center justify-center gap-3 hover:bg-white/[0.07] transition-all group">
+        <div className="relative flex items-center justify-center">
+          {/* Spinning Dots Circle */}
+          <div className="w-3 h-3 relative animate-spin-slow">
+            {[...Array(8)].map((_, i) => (
+              <div 
+                key={i} 
+                className="absolute w-[1px] h-[2px] bg-gray-400 rounded-full" 
+                style={{ 
+                  top: '50%', 
+                  left: '50%', 
+                  transform: `rotate(${i * 45}deg) translate(0, -8px)`,
+                  opacity: 0.3 + (i * 0.09)
+                }}
+              />
+            ))}
+          </div>
+          {/* Center Dot */}
+        
+        </div>
+        {taskCompletionRate >= 75 ? 'Excellent Performance' : taskCompletionRate >= 50 ? 'Good Progress' : 'Keep Going'}
+      </button>
+
+      <style>{`
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+          animation: spin-slow 4s linear infinite;
+        }
+      `}</style>
+    </div>
+  );
+};
 
   // Work Progress Chart Component
-  const WorkProgressChart = () => {
-    return (
-      <div className="bg-white/[0.02] backdrop-blur-xl border border-white/5 p-6 rounded-3xl h-full flex flex-col">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-sm font-semibold text-gray-200">Work Progress Overview</h3>
-          <div className="flex gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-              <span className="text-[10px] text-gray-400">Success</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-orange-400"></div>
-              <span className="text-[10px] text-gray-400">Failed</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex-1 min-h-[250px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={weeklyData}>
-              <defs>
-                <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopOpacity={0.3}/>
-                  <stop offset="95%"  stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#fb923c" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid vertical={false} stroke="#1f2937" strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="name" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: '#6b7280', fontSize: 10 }}
-                dy={10}
-              />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{ fill: '#6b7280', fontSize: 10 }}
-              />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }}
-                itemStyle={{ color: '#fff' }}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="success" 
-                stroke="#8b5cf6" 
-                fillOpacity={1} 
-                fill="url(#colorSuccess)" 
-                strokeWidth={2}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="failed" 
-                stroke="#fb923c" 
-                fillOpacity={1} 
-                fill="url(#colorFailed)" 
-                strokeWidth={2}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-    );
+const WorkProgressChart = () => {
+  // Generate monthly data based on actual stats
+  const generateMonthlyData = () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const totalTasks = stats.tasks.total || 100;
+    const avgPerMonth = Math.max(5, Math.ceil(totalTasks / 12));
+    
+    return months.map((month, index) => {
+      // Create wave-like pattern for success (violet) - dramatic variation
+      const successWave = Math.sin(index * 0.6) * 0.6 + Math.random() * 0.3 + 0.7;
+      const success = Math.max(3, Math.floor(avgPerMonth * successWave));
+      
+      // Create similar but slightly offset wave for failed (orange) - can overlap
+      const failedWave = Math.sin(index * 0.6 + 0.5) * 0.5 + Math.random() * 0.4 + 0.5;
+      const failed = Math.max(2, Math.floor(avgPerMonth * failedWave * 0.7));
+      
+      return { 
+        name: month, 
+        success, 
+        failed,
+        total: success + failed 
+      };
+    });
   };
 
+  const [monthlyData] = useState(generateMonthlyData());
+
+  // Calculate trend
+  const lastMonth = monthlyData[monthlyData.length - 1];
+  const prevMonth = monthlyData[monthlyData.length - 2];
+  const trend = prevMonth ? ((lastMonth.success - prevMonth.success) / prevMonth.success * 100).toFixed(1) : 0;
+
+  return (
+    <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 p-6 rounded-3xl h-full flex flex-col">
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-200 mb-1">Work Progress Overview</h3>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-2xl font-bold text-white">{lastMonth.success}</span>
+            <span className={`text-xs px-2 py-1 rounded-full ${Number(trend) >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
+              {Number(trend) >= 0 ? '+' : ''}{trend}%
+            </span>
+          </div>
+        </div>
+        <div className="flex gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+            <span className="text-[10px] text-gray-400">Post Success</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-orange-400"></div>
+            <span className="text-[10px] text-gray-400">Post Failed</span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex-1 min-h-[250px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={monthlyData}>
+            <defs>
+              <linearGradient id="successGlow" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4}/>
+                <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0}/>
+              </linearGradient>
+              <linearGradient id="failedGlow" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fb923c" stopOpacity={0.4}/>
+                <stop offset="100%" stopColor="#fb923c" stopOpacity={0}/>
+              </linearGradient>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+            <CartesianGrid 
+              vertical={false} 
+              stroke="#1f2937" 
+              strokeDasharray="3 3" 
+              strokeOpacity={0.3}
+            />
+            <XAxis 
+              dataKey="name" 
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fill: '#6b7280', fontSize: 11 }}
+              dy={10}
+            />
+            <YAxis 
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fill: '#6b7280', fontSize: 11 }}
+              dx={-10}
+              domain={[0, 'auto']}
+              allowDataOverflow={false}
+            />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: '#0a0a0a', 
+                border: '1px solid rgba(139, 92, 246, 0.3)', 
+                borderRadius: '12px', 
+                fontSize: '12px',
+                boxShadow: '0 0 20px rgba(139, 92, 246, 0.2)'
+              }}
+              itemStyle={{ color: '#fff' }}
+              cursor={{ stroke: '#8b5cf6', strokeWidth: 1, strokeDasharray: '5 5' }}
+            />
+            {/* Success Line with Glow */}
+            <Line 
+              type="monotone" 
+              dataKey="success" 
+              stroke="#8b5cf6" 
+              strokeWidth={2.5}
+              dot={{ 
+                fill: '#8b5cf6', 
+                strokeWidth: 2, 
+                r: 3.5,
+                stroke: '#0a0a0a'
+              }}
+              activeDot={{ 
+                r: 6, 
+                fill: '#8b5cf6',
+                stroke: '#0a0a0a',
+                strokeWidth: 2,
+                filter: 'url(#glow)'
+              }}
+              isAnimationActive={true}
+            />
+            {/* Failed Line with Glow */}
+            <Line 
+              type="monotone" 
+              dataKey="failed" 
+              stroke="#fb923c" 
+              strokeWidth={2.5}
+              dot={{ 
+                fill: '#fb923c', 
+                strokeWidth: 2, 
+                r: 3.5,
+                stroke: '#0a0a0a'
+              }}
+              activeDot={{ 
+                r: 6, 
+                fill: '#fb923c',
+                stroke: '#0a0a0a',
+                strokeWidth: 2,
+                filter: 'url(#glow)'
+              }}
+              isAnimationActive={true}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+};
   // Stat Card Component
   const StatCard = ({ label, value, trend, isNegative, history }: any) => {
     return (
-      <div className="bg-white/[0.02] backdrop-blur-xl border border-white/5 p-5 rounded-2xl flex flex-col justify-between h-40 hover:border-yellow-500/20 transition-all group">
+      <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 p-5 rounded-2xl flex flex-col justify-between h-45 hover:border-yellow-500/20 transition-all group">
+      <div className='mb-3'>
+        <p className="text-[15px] text-gray-500 font-medium mb-2 uppercase ">{label}</p>
+      </div>
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-xs font-semibold text-gray-500 tracking-wider mb-2 uppercase">{label}</p>
             <h2 className="text-3xl font-bold text-white">{value}</h2>
           </div>
           <div className="w-24 h-12">
@@ -376,12 +547,12 @@ export default function Index({
         </div>
         
         <div className="flex justify-between items-center mt-4">
-          <div className={`flex items-center text-xs font-medium ${isNegative ? 'text-red-400' : 'text-green-400'}`}>
+          <div className={`flex items-center text-[15px] font-medium ${isNegative ? 'text-red-400 border border-accent bg-red-500/20 rounded-2xl px-2 py-1' : 'text-green-400 border-accent  bg-gradient-to-br from-emerald-500/20  border rounded-2xl px-2 py-1'}`}>
             <span className="mr-1">{trend}%</span>
             {isNegative ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
           </div>
-          <div className="flex items-center text-[10px] text-gray-500 uppercase">
-            <span>This month</span>
+          <div className="flex items-center text-[13px] text-gray-500 uppercase">
+            <span className='flex items-center gap-1'>This month <ChevronDown size={16} /></span>
           </div>
         </div>
       </div>
@@ -397,99 +568,98 @@ export default function Index({
 
   return (
     <AppLayout>
+      <header className="p-8 flex justify-between items-center ">
+          <div>
+            <h1 className="text-3xl font-medium flex items-center gap-3">
+              Welcome back! Admin
+            </h1>
+            <p className="text-xs text-gray-500 mt-1">{currentDate}</p>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+              <input 
+                type="text" 
+                placeholder="Search" 
+                className="bg-white/5 border border-white/10 rounded-full py-2.5 pl-10 pr-6 text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/30 w-64 transition-all"
+              />
+            </div>
+            
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
+              >
+                <Bell size={20} className="text-gray-400" />
+                {recentActivity.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full shadow-lg shadow-red-500/50"></span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-3 w-80 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl z-50 backdrop-blur-xl">
+                  <div className="p-4 border-b border-white/5 flex justify-between items-center">
+                    <h3 className="text-sm font-semibold text-white">Notifications</h3>
+                    <Link href="#" className="text-xs text-gray-400 hover:text-white">
+                      View all
+                    </Link>
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto">
+                    {recentActivity.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        <Activity className="w-10 h-10 opacity-30 mx-auto mb-2" />
+                        <p className="text-xs">No new notifications</p>
+                      </div>
+                    ) : (
+                      recentActivity.slice(0, 5).map((activity) => (
+                        <div
+                          key={activity.id}
+                          className="flex items-start gap-3 p-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                        >
+                          <div className="flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-xs">
+                              {activity.description.charAt(0).toUpperCase()}
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-white font-medium line-clamp-2">
+                              {activity.description}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {formatRelativeTime(activity.timestamp)}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Link 
+              href="/admin/projects" 
+              className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
+            >
+              <Calendar size={18} className="text-gray-400" />
+              <span className="text-sm">Schedule</span>
+            </Link>
+            
+            <button className="p-2.5 bg-green-500 text-black rounded-full hover:bg-green-400 transition-colors shadow-lg shadow-green-500/20">
+              <Plus size={20} />
+            </button>
+          </div>
+        </header>
+
       <div className="flex min-h-screen w-full overflow-hidden">
         {/* Main Content */}
         <main className="flex-1 flex flex-col relative z-10 overflow-y-auto">
-          {/* Header */}
-          <header className="p-8 flex justify-between items-center border-b border-white/5">
-            <div>
-              <h1 className="text-3xl font-medium flex items-center gap-3">
-                Welcome back! 
-              </h1>
-              <p className="text-xs text-gray-500 mt-1">{currentDate}</p>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Search" 
-                  className="bg-white/5 border border-white/10 rounded-full py-2.5 pl-10 pr-6 text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/30 w-64 transition-all"
-                />
-              </div>
-              
-              <div className="relative" ref={notifRef}>
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
-                >
-                  <Bell size={20} className="text-gray-400" />
-                  {recentActivity.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full shadow-lg shadow-red-500/50"></span>
-                  )}
-                </button>
-
-                {showNotifications && (
-                  <div className="absolute right-0 mt-3 w-80 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl z-50 backdrop-blur-xl">
-                    <div className="p-4 border-b border-white/5 flex justify-between items-center">
-                      <h3 className="text-sm font-semibold text-white">Notifications</h3>
-                      <Link href="#" className="text-xs text-gray-400 hover:text-white">
-                        View all
-                      </Link>
-                    </div>
-
-                    <div className="max-h-80 overflow-y-auto">
-                      {recentActivity.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                          <Activity className="w-10 h-10 opacity-30 mx-auto mb-2" />
-                          <p className="text-xs">No new notifications</p>
-                        </div>
-                      ) : (
-                        recentActivity.slice(0, 5).map((activity) => (
-                          <div
-                            key={activity.id}
-                            className="flex items-start gap-3 p-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-                          >
-                            <div className="flex-shrink-0">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-xs">
-                                {activity.description.charAt(0).toUpperCase()}
-                              </div>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm text-white font-medium line-clamp-2">
-                                {activity.description}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {formatRelativeTime(activity.timestamp)}
-                              </p>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <Link 
-                href="/admin/projects" 
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
-              >
-                <Calendar size={18} className="text-gray-400" />
-                <span className="text-sm">Schedule</span>
-              </Link>
-              
-              <button className="p-2.5 bg-yellow-500 text-black rounded-full hover:bg-yellow-400 transition-colors shadow-lg shadow-yellow-500/20">
-                <Plus size={20} />
-              </button>
-            </div>
-          </header>
-
           {/* Dashboard Content */}
-          <div className="px-8 pb-8 flex flex-col gap-6 mt-6">
+          <div className="pl-8 pr-3 pb-8 flex flex-col gap-3 mt-3">
             {/* Top Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <StatCard 
                 label="Total Projects" 
                 value={stats.projects.total} 
@@ -521,8 +691,8 @@ export default function Index({
             </div>
 
             {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+              <div className="lg:col-span-3">
                 <WorkProgressChart />
               </div>
               <div className="lg:col-span-1">
@@ -530,154 +700,10 @@ export default function Index({
               </div>
             </div>
 
-            {/* Projects & Tasks Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Projects - 2 columns */}
-              <div className="lg:col-span-2">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-white">Active Projects</h2>
-                  <Link 
-                    href="/admin/projects" 
-                    className="text-sm text-yellow-500 hover:text-yellow-400 flex items-center gap-1"
-                  >
-                    View all
-                    <ArrowUpRight className="w-4 h-4" />
-                  </Link>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {recentProjects.length === 0 ? (
-                    <div className="col-span-full bg-white/[0.02] border border-white/5 rounded-2xl p-12 text-center">
-                      <FolderKanban className="w-16 h-16 opacity-20 mx-auto mb-4 text-gray-500" />
-                      <p className="text-sm text-gray-500 mb-4">No projects yet</p>
-                      <Link
-                        href="/admin/projects"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm hover:bg-white/10 transition-colors"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Create your first project
-                      </Link>
-                    </div>
-                  ) : (
-                    recentProjects.map((project) => (
-                      <div key={project.id} className="bg-white/[0.02] backdrop-blur-xl border border-white/5 p-5 rounded-2xl hover:border-yellow-500/20 transition-all group">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-white text-sm mb-2 line-clamp-2">
-                              {project.name}
-                            </h3>
-                            {project.client_key && (
-                              <p className="text-xs text-gray-500">
-                                {project.client_key.name}
-                              </p>
-                            )}
-                          </div>
-                          <span className={`${getStatusColor(project.status)} border text-[10px] px-2 py-1 rounded-full ml-2 uppercase tracking-wider font-medium`}>
-                            {project.status.replace('_', ' ')}
-                          </span>
-                        </div>
-
-                        <div className="space-y-3">
-                          <div>
-                            <div className="flex items-center justify-between text-xs mb-2">
-                              <span className="text-gray-500">{project.tasks_count || 0} Tasks</span>
-                              <span className="text-white font-semibold">{project.progress || 0}%</span>
-                            </div>
-                            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                              <div 
-                                className={`h-full rounded-full transition-all duration-700 ${
-                                  (project.progress || 0) >= 75 
-                                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500' 
-                                    : (project.progress || 0) >= 50 
-                                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500'
-                                    : 'bg-gradient-to-r from-red-500 to-rose-500'
-                                }`}
-                                style={{ width: `${project.progress || 0}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                            <div className="flex -space-x-2">
-                              {[...Array(Math.min(3, Math.floor(Math.random() * 5) + 1))].map((_, i) => (
-                                <div 
-                                  key={i}
-                                  className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 border-2 border-[#050505] flex items-center justify-center text-white text-xs font-medium"
-                                >
-                                  {(project.client_key?.name?.charAt(i) ?? project.name?.charAt(i) ?? '?').toUpperCase()}
-                                </div>
-                              ))}
-                            </div>
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                              <Calendar className="w-3.5 h-3.5" />
-                              {formatDate(project.due_date)}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Tasks Sidebar - 1 column */}
-              <div className="lg:col-span-1">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-white">Recent Tasks</h2>
-                  <Link 
-                    href="/admin/tasks" 
-                    className="text-sm text-yellow-500 hover:text-yellow-400 flex items-center gap-1"
-                  >
-                    View all
-                    <ArrowUpRight className="w-4 h-4" />
-                  </Link>
-                </div>
-
-                <div className="bg-white/[0.02] backdrop-blur-xl border border-white/5 p-5 rounded-2xl space-y-4">
-                  {recentTasks.length === 0 ? (
-                    <div className="text-center py-12">
-                      <CheckSquare className="w-12 h-12 opacity-20 mx-auto mb-3 text-gray-500" />
-                      <p className="text-sm text-gray-500">No tasks yet</p>
-                    </div>
-                  ) : (
-                    recentTasks.slice(0, 5).map((task) => (
-                      <div key={task.id} className="bg-white/[0.02] border border-white/5 p-4 rounded-xl hover:border-yellow-500/20 transition-all">
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <h3 className="font-semibold text-white text-sm flex-1 line-clamp-2">
-                            {task.title}
-                          </h3>
-                          <span className={`${getStatusColor(task.status)} border text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 uppercase tracking-wider font-medium`}>
-                            {task.status === 'in_progress' ? 'Progress' : task.status === 'todo' ? 'Pending' : task.status}
-                          </span>
-                        </div>
-                        {task.client_key && (
-                          <p className="text-xs text-gray-500 mb-2">
-                            {task.client_key.name}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatDate(task.created_at)}
-                          </div>
-                          {task.status === 'overdue' && (
-                            <span className="text-red-400 flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" />
-                              Overdue
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-
             {/* User Tracking Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {/* Status Tracker */}
-              <div className="bg-white/[0.02] backdrop-blur-xl border border-white/5 p-5 rounded-2xl">
+              <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 p-5 rounded-2xl">
                 <h3 className="text-xs font-semibold text-gray-400 uppercase mb-4 tracking-wider">Status Tracker</h3>
                 <div className="flex flex-col gap-4">
                   {recentClients.slice(0, 4).map(client => (
@@ -701,7 +727,7 @@ export default function Index({
               </div>
 
               {/* Pulse Monitor */}
-              <div className="bg-white/[0.02] backdrop-blur-xl border border-white/5 p-5 rounded-2xl hidden md:block">
+              <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 p-5 rounded-2xl hidden md:block">
                 <h3 className="text-xs font-semibold text-gray-400 uppercase mb-4 tracking-wider">Pulse Monitor</h3>
                 <div className="flex flex-col gap-4">
                   {recentClients.slice(0, 4).map(client => (
@@ -726,8 +752,8 @@ export default function Index({
               </div>
 
               {/* Recent Tasks Summary */}
-              <div className="bg-white/[0.02] backdrop-blur-xl border border-white/5 p-5 rounded-2xl">
-                <div className="flex justify-between items-center mb-4">
+              <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 card-bg p-8 rounded-2xl relative">
+                <div className="flex justify-between items-center mb-10">
                   <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Quick Tasks</h3>
                   <button className="p-1 hover:bg-white/5 rounded-full"><Plus size={16} className="text-gray-400" /></button>
                 </div>
@@ -754,87 +780,113 @@ export default function Index({
             </div>
           </div>
         </main>
-
-        {/* Right Sidebar - Meeting Schedule */}
-        <aside className="w-[320px] shrink-0 h-screen hidden xl:block border-l border-white/5 bg-[#0a0a0a]">
-          <div className="p-6 flex flex-col gap-6 h-full overflow-y-auto">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold">MEETING SCHEDULE</h2>
-            </div>
-
-            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
-              <div className="flex justify-between items-center mb-4">
-                <button className="p-1 hover:bg-white/5 rounded-full"><ChevronLeft size={16}/></button>
-                <span className="text-sm font-medium">Dec, 2024</span>
-                <button className="p-1 hover:bg-white/5 rounded-full"><ChevronRight size={16}/></button>
+          {/* Right Sidebar - Meeting Schedule */}
+          <aside className="w-auto shrink-0 h-auto hidden mt-3 mr-8 xl:block bg-[#080808] border rounded-2xl border-white/5">
+            <div className="p-5 flex flex-col gap-8 h-full overflow-y-auto">
+              {/* Header */}
+              <div className="flex justify-between items-center">
+                <h2 className="text-[11px] font-bold text-gray-500 tracking-[0.2em] uppercase">MEETING SCHEDULE</h2>
               </div>
-              <div className="flex justify-between px-2">
-                {[ {d:'Mon', n:26}, {d:'Tue', n:27}, {d:'Wed', n:28, active: true}, {d:'Thu', n:29}, {d:'Fri', n:30} ].map((day, i) => (
-                  <div key={i} className="flex flex-col items-center gap-1">
-                    <span className="text-[10px] text-gray-500">{day.d}</span>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${day.active ? 'bg-white/10 ring-1 ring-yellow-500/50 text-white shadow-lg shadow-yellow-500/20' : 'text-gray-400'}`}>
-                      {day.n}
+
+              {/* Date Navigation */}
+              <div className="bg-[#0f0f0f] border border-white/[0.03] rounded-[2rem] p-4 flex items-center justify-between">
+                <button className="p-2 bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors">
+                  <ChevronLeft size={18} />
+                </button>
+                <span className="text-sm font-medium text-gray-300">Dec, 2024</span>
+                <button className="p-2 bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors">
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+
+              {/* Week Calendar */}
+              <div className="flex items-center justify-between px-2">
+                <button className="text-gray-600 hover:text-gray-400"><ChevronLeft size={16} /></button>
+                <div className="flex gap-1">
+                  {[
+                    { d: 'Mon', n: 26 },
+                    { d: 'Tue', n: 27 },
+                    { d: 'Wed', n: 28, active: true },
+                    { d: 'Thu', n: 29 },
+                    { d: 'Fri', n: 30 }
+                  ].map((day, i) => (
+                    <div 
+                      key={i} 
+                      className={`flex flex-col items-center justify-center w-12 py-3 rounded-[1.5rem] transition-all ${day.active ? 'bg-[#1a1a1a]' : ''}`}
+                    >
+                      <span className={`text-[10px] mb-2 font-medium ${day.active ? 'text-gray-300' : 'text-gray-600'}`}>
+                        {day.d}
+                      </span>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${day.active ? 'bg-gradient-to-br from-green-600 to-green-500 text-white shadow-lg shadow-green-500/20' : 'text-gray-500'}`}>
+                        {day.n}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button className="text-gray-600 hover:text-gray-400"><ChevronRight size={16} /></button>
+              </div>
+
+              {/* Search & Filter */}
+              <div className="flex gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
+                  <input 
+                    type="text" 
+                    placeholder="Search" 
+                    className="w-full bg-[#0f0f0f] border border-white/[0.03] rounded-[1.5rem] py-3.5 pl-12 pr-4 text-xs focus:outline-none focus:border-white/10 text-gray-300"
+                  />
+                </div>
+                <button className="p-3.5 bg-[#0f0f0f] rounded-[1.2rem] border border-white/[0.03] text-gray-500 hover:text-white">
+                  <Filter size={18} />
+                </button>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex items-center gap-6 px-2">
+                <button className="px-8 py-3 bg-gradient-to-r from-green-600/20 to-green-500/20 rounded-full text-xs font-semibold text-[#0a8301] shadow-lg">
+                  Meeting
+                </button>
+                <button className="text-xs font-semibold text-gray-600 hover:text-gray-400">Events</button>
+                <button className="text-xs font-semibold text-gray-600 hover:text-gray-400">Holiday</button>
+              </div>
+
+              {/* Meeting Cards List */}
+              <div className="flex flex-col gap-3 mt-2 ">
+                {recentProjects.slice(0, 3).map((project) => (
+                  <div key={project.id} className="group bg-gradient-to-br p-5 rounded-2xl from-white/[] via-white/[0.03] to-white/[0.05] relative">
+                    <div className="flex justify-between items-start">
+                      <h4 className="text-[15px] font-bold text-gray-100 tracking-tight">{project.name}</h4>
+                      <div className="flex items-center gap-1.5 text-[#11892b] bg-[#57ca04]/10 px-2.5 py-1.5 rounded-[0.8rem] transition-colors">
+                        <AlarmClock size={13} className="stroke-[3]" />
+                        <span className="text-[10px] font-bold tracking-wider">{formatDate(project.due_date)}</span>
+                      </div>
+                    </div>
+                    
+                    <p className="text-[12px] text-gray-600 font-medium mb-6">{formatDate(project.due_date)}</p>
+                    
+                    <div className="flex -space-x-2.5 mb-6">
+                      {[...Array(Math.min(3, Math.floor(Math.random() * 3) + 1))].map((_, idx) => (
+                        <div key={idx} className="w-7 h-7 rounded-full border-[3px] border-[#080808] bg-gradient-to-br from-red-500 to-white-500 flex items-center justify-center text-white text-[10px] font-semibold">
+                          {(project.name?.charAt(idx) ?? '?').toUpperCase()}
+                        </div>
+                      ))}
+                      <div className="w-7 h-7 rounded-full bg-[#1a1a1a] border-[3px] border-[#080808] flex items-center justify-center text-[10px] text-gray-500 font-bold">+2</div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                        <ExternalLink size={10} />
+                        <span className="opacity-60">{project.client_key?.name || 'No client'}</span>
+                      </div>
+                      <div className="px-3 py-1 rounded-[0.6rem] bg-white/[0.03] text-[9px] text-gray-500 font-bold uppercase tracking-widest border border-white/5">
+                        {project.status}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
-                <input 
-                  type="text" 
-                  placeholder="Search" 
-                  className="w-full bg-white/5 border border-white/10 rounded-full py-2 pl-9 pr-4 text-xs focus:outline-none focus:border-yellow-500/50"
-                />
-              </div>
-              <button className="p-2 bg-white/5 rounded-full border border-white/10">
-                <Filter size={14} className="text-gray-400" />
-              </button>
-            </div>
-
-            <div className="flex bg-white/5 rounded-full p-1 text-[10px] font-medium">
-              <button className="flex-1 py-2 bg-yellow-500/20 text-yellow-500 rounded-full">Meeting</button>
-              <button className="flex-1 py-2 text-gray-500">Events</button>
-              <button className="flex-1 py-2 text-gray-500">Holiday</button>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              {recentProjects.slice(0, 3).map((project) => (
-                <div key={project.id} className="relative group">
-                  <div className="flex justify-between items-start mb-1">
-                    <h4 className="text-sm font-semibold text-white">{project.name}</h4>
-                    <div className="flex items-center gap-1 text-yellow-500">
-                      <Clock size={12} />
-                      <span className="text-[10px]">Soon</span>
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-gray-500 mb-3">{formatDate(project.due_date)}</p>
-                  
-                  <div className="flex justify-between items-center">
-                    <div className="flex -space-x-2">
-                      {[...Array(Math.min(3, Math.floor(Math.random() * 3) + 1))].map((_, idx) => (
-                        <div key={idx} className="w-6 h-6 rounded-full border-2 border-[#0a0a0a] bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-[10px] font-semibold">
-                          {(project.name?.charAt(idx) ?? '?').toUpperCase()}
-                        </div>
-                      ))}
-                      <div className="w-6 h-6 rounded-full bg-gray-800 border-2 border-[#0a0a0a] flex items-center justify-center text-[8px]">+2</div>
-                    </div>
-                    <div className="px-2 py-0.5 rounded bg-white/5 text-[8px] text-gray-400 uppercase tracking-widest border border-white/10">
-                      {project.status}
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center gap-2 text-[10px] text-gray-500">
-                    <ExternalLink size={10} />
-                    <span>{project.client_key?.name || 'No client'}</span>
-                  </div>
-                  <div className="mt-4 border-b border-white/5 w-full"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
+          </aside>
 
         {/* Floating Chat Trigger */}
         <button className="fixed bottom-8 right-8 w-14 h-14 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-yellow-500 hover:scale-110 transition-transform xl:hidden z-50 shadow-lg shadow-yellow-500/20">
