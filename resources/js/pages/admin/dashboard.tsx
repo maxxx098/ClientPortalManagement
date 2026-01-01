@@ -162,12 +162,12 @@ export default function Index({
       active: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
       inactive: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
       planned: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      in_progress: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      in_progress: 'bg-green-500/20 text-green-400 border-green-500/30',
       on_hold: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
       completed: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
       todo: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
       done: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-      pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      pending: 'bg-green-500/20 text-green-400 border-green-500/30',
       overdue: 'bg-red-500/20 text-red-400 border-red-500/30',
     };
     return colors[status] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
@@ -176,7 +176,7 @@ export default function Index({
   const getPriorityColor = (priority: string) => {
     const colors: Record<string, string> = {
       low: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+      medium: 'bg-green-500/20 text-green-400 border-green-500/30',
       high: 'bg-red-500/20 text-red-400 border-red-500/30',
     };
     return colors[priority] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
@@ -523,7 +523,7 @@ const WorkProgressChart = () => {
   // Stat Card Component
   const StatCard = ({ label, value, trend, isNegative, history }: any) => {
     return (
-      <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 p-5 rounded-2xl flex flex-col justify-between h-45 hover:border-yellow-500/20 transition-all group">
+      <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 p-5 rounded-2xl flex flex-col justify-between h-45 hover:border-green-500/20 transition-all group">
       <div className='mb-3'>
         <p className="text-[15px] text-gray-500 font-medium mb-2 uppercase ">{label}</p>
       </div>
@@ -582,7 +582,7 @@ const WorkProgressChart = () => {
               <input 
                 type="text" 
                 placeholder="Search" 
-                className="bg-white/5 border border-white/10 rounded-full py-2.5 pl-10 pr-6 text-sm focus:outline-none focus:ring-1 focus:ring-yellow-500/30 w-64 transition-all"
+                className="bg-white/5 border border-white/10 rounded-full py-2.5 pl-10 pr-6 text-sm focus:outline-none focus:ring-1 focus:ring-green-500/30 w-64 transition-all"
               />
             </div>
             
@@ -744,7 +744,7 @@ const WorkProgressChart = () => {
                         </div>
                       </div>
                       <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
-                        <div className="w-1/2 h-full bg-yellow-500/50"></div>
+                        <div className="w-1/2 h-full bg-green-500/50"></div>
                       </div>
                     </div>
                   ))}
@@ -889,7 +889,7 @@ const WorkProgressChart = () => {
           </aside>
 
         {/* Floating Chat Trigger */}
-        <button className="fixed bottom-8 right-8 w-14 h-14 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-yellow-500 hover:scale-110 transition-transform xl:hidden z-50 shadow-lg shadow-yellow-500/20">
+        <button className="fixed bottom-8 right-8 w-14 h-14 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-green-500 hover:scale-110 transition-transform xl:hidden z-50 shadow-lg shadow-green-500/20">
           <MessageSquare size={24} />
         </button>
       </div>
