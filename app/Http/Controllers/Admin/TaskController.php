@@ -53,7 +53,7 @@ class TaskController extends Controller
             $validated = $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'client_key_id' => 'required|exists:client_keys,key',
+               'client_key_id' => 'required|exists:client_keys,id',
                 'voice_message' => 'nullable|string',
                 'due_date' => [
                     'nullable',

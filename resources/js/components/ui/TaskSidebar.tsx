@@ -391,7 +391,27 @@ const handleDelete = () => {
         </div>
 
         {/* Client (Admin only) */}
-
+        {userRole === "admin" && (
+          <div className="space-y-2">
+            <Label htmlFor="client_key_id" className="text-gray-300">Client {!isViewMode && <span className="text-red-500">*</span>}</Label>
+            <Select
+              value={data.client_key_id || clientKey}
+              onValueChange={(val: any) => setData("client_key_id", val)}
+              disabled={isViewMode || !!clientKey}
+            >
+              <SelectTrigger id="client_key_id" className="text-white">
+                <SelectValue placeholder="Select client" />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.key}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         {/* File Attachment */}
         {!isViewMode && (

@@ -1,42 +1,38 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { type BreadcrumbItem as BreadcrumbItemType } from '@/types';
+import { type SharedData, type BreadcrumbItem as BreadcrumbItemType } from '@/types';
 import { 
   Bell,
   Search,
   Calendar,
   Plus,
-  Activity
+  Activity,
+  ChevronDown,
+  Settings,
+  Wallet,
+  User,
+  LogOut,
+  Shield
 } from 'lucide-react';
-
-interface RecentActivity {
-  id: string;
-  type: string;
-  description: string;
-  user?: string;
-  timestamp: string;
-}
+import { edit } from '@/routes/profile';
 
 interface AppSidebarHeaderProps {
   breadcrumbs?: BreadcrumbItemType[];
-  recentActivity?: RecentActivity[];
 }
 
 export function AppSidebarHeader({
-  breadcrumbs = [],
-  recentActivity = []
+  breadcrumbs = []
 }: AppSidebarHeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
-  const currentDate = new Date().toLocaleDateString('en-US', { 
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric' 
-  });
+  // Get recentActivity from global Inertia props
+  const { auth, recentActivity = [] } = usePage<SharedData>().props;
+  const activities = Array.isArray(recentActivity) ? recentActivity : [];
 
   const formatRelativeTime = (date?: string) => {
     if (!date) return 'N/A';
@@ -57,97 +53,206 @@ export function AppSidebarHeader({
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
       }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setShowProfileDropdown(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleLogout = () => {
+    router.post('/logout');
+  };
+
   return (
-    <header className="px-8 py-6 grid grid-cols-12 gap-3 w-full items-center">
-        <div className='col-span-9'>
-                <div className="flex items-center gap-4">
-                <SidebarTrigger className="-ml-1" />
-                {breadcrumbs.length > 0 && (
-                <Breadcrumbs breadcrumbs={breadcrumbs} />
-                )}
-                <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                <input 
-                    type="text" 
-                    placeholder="Search" 
-                    className="bg-white/5 border border-white/10 rounded-full py-2.5 pl-10 pr-6 text-sm focus:outline-none focus:ring-1 focus:ring-green-500/30 max-w-[600px] w-full transition-all"
-                />
-                </div>
-            </div>
+    <div className="flex items-center justify-between px-6 py-4 mb-8 shadow-2xl pt-7 border-b border-white/5 pb-7">
+      {/* Left Section: Profile */}
+      <div className="flex items-center space-x-4">
+        <SidebarTrigger className="-ml-1" />
+        
+        <div className="relative">
+          <img 
+            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ryan" 
+            alt="Ryan Crawford" 
+            className="w-12 h-12 rounded-full border-2 border-[#1e1e24] bg-[#1e1e24]"
+          />
         </div>
-        <div className='col-span-3'>    
-            <div className="flex items-center justify-between gap-4 ">           
-                <div className="relative" ref={notifRef}>
-                <button
-                    onClick={() => setShowNotifications(!showNotifications)}
-                    className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
-                >
-                    <Bell size={20} className="text-gray-400" />
-                    {recentActivity.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full shadow-lg shadow-red-500/50"></span>
-                    )}
-                </button>
+        <div className="flex flex-col">
+          <div className="flex items-center space-x-2">
+            <span className="text-gray-500 text-xs font-medium">
+              {auth.user?.email}
+            </span>
+            <span className="bg-[#1e1e24] text-[#a0a0ff] text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
+              {auth.user?.role === 'admin' ? 'PRO' : 'FREE'}
+            </span>
+          </div>
+          
+          {/* Profile Dropdown Button */}
+          <div className="relative" ref={profileRef}>
+            <button 
+              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              className="flex items-center text-white font-semibold text-sm group"
+            >
+              <span>{auth.user?.role === 'admin' ? 'Administrator' : 'Client User'}</span>
+              <ChevronDown size={14} className="ml-1 text-gray-500 group-hover:text-white transition-colors" />
+            </button>
 
-                {showNotifications && (
-                    <div className="absolute right-0 mt-3 w-80 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl z-50 backdrop-blur-xl">
-                    <div className="p-4 border-b border-white/5 flex justify-between items-center">
-                        <h3 className="text-sm font-semibold text-white">Notifications</h3>
-                        <Link href="#" className="text-xs text-gray-400 hover:text-white">
-                        View all
-                        </Link>
+            {/* Profile Dropdown Menu */}
+            {showProfileDropdown && (
+              <div className="absolute left-0 mt-3 w-64 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl z-50 backdrop-blur-xl">
+                <div className="p-4 border-b border-white/5">
+                  <div className="flex items-center space-x-3">
+                    <img 
+                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ryan" 
+                      alt={auth.user?.name} 
+                      className="w-10 h-10 rounded-full border-2 border-[#1e1e24] bg-[#1e1e24]"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-white">{auth.user?.name}</span>
+                      <span className="text-xs text-gray-400">{auth.user?.email}</span>
                     </div>
-
-                    <div className="max-h-80 overflow-y-auto">
-                        {recentActivity.length === 0 ? (
-                        <div className="text-center py-8 text-gray-500">
-                            <Activity className="w-10 h-10 opacity-30 mx-auto mb-2" />
-                            <p className="text-xs">No new notifications</p>
-                        </div>
-                        ) : (
-                        recentActivity.slice(0, 5).map((activity) => (
-                            <div
-                            key={activity.id}
-                            className="flex items-start gap-3 p-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-                            >
-                            <div className="flex-shrink-0">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-xs">
-                                {activity.description.charAt(0).toUpperCase()}
-                                </div>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm text-white font-medium line-clamp-2">
-                                {activity.description}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                {formatRelativeTime(activity.timestamp)}
-                                </p>
-                            </div>
-                            </div>
-                        ))
-                        )}
-                    </div>
-                    </div>
-                )}
+                  </div>
                 </div>
 
-                <Link 
-                href="/admin/projects" 
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
-                >
-                <Calendar size={18} className="text-gray-400" />
-                <span className="text-sm">Schedule</span>
+                <div className="py-2">
+                  <Link
+                    href={edit().url}
+                    className="flex items-center space-x-3 px-4 py-3 hover:bg-white/5 transition-colors group"
+                  >
+                    <User size={16} className="text-gray-400 group-hover:text-white" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-white">Profile Settings</span>
+                      <span className="text-xs text-gray-500">Update your name and email</span>
+                    </div>
+                  </Link>
+
+                  {auth.user?.role === 'admin' && (
+                    <Link
+                      href="/admin"
+                      className="flex items-center space-x-3 px-4 py-3 hover:bg-white/5 transition-colors group"
+                    >
+                      <Shield size={16} className="text-gray-400 group-hover:text-white" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-white">Admin Dashboard</span>
+                        <span className="text-xs text-gray-500">Manage system settings</span>
+                      </div>
+                    </Link>
+                  )}
+
+                  <Link
+                    href="/settings"
+                    className="flex items-center space-x-3 px-4 py-3 hover:bg-white/5 transition-colors group"
+                  >
+                    <Settings size={16} className="text-gray-400 group-hover:text-white" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-white">Account Settings</span>
+                      <span className="text-xs text-gray-500">Preferences and security</span>
+                    </div>
+                  </Link>
+                </div>
+
+                <div className="border-t border-white/5 py-2">
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-3 px-4 py-3 hover:bg-red-500/10 transition-colors group w-full text-left"
+                  >
+                    <LogOut size={16} className="text-gray-400 group-hover:text-red-400" />
+                    <span className="text-sm font-medium text-gray-300 group-hover:text-red-400">Log out</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="h-10 w-px bg-white/10 mx-4 hidden md:block"></div>
+
+        {/* Deposit Button */}
+        <button className="bg-[#b4b4ff] hover:bg-[#a0a0ff] text-[#0a0a0c] px-5 py-2 rounded-2xl flex items-center space-x-2 font-bold text-sm transition-all transform active:scale-95 shadow-lg shadow-indigo-500/20">
+          <span>Deposit</span>
+          <Wallet size={16} />
+        </button>
+      </div>
+
+      {/* Right Section: Actions */}
+      <div className="flex items-center space-x-4">
+        {/* Notification Bell */}
+        <div className="relative" ref={notifRef}>
+          <div className="relative group cursor-pointer">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="p-2.5 rounded-full border border-white/10 hover:bg-white/5 transition-colors"
+            >
+              <Bell size={18} className="text-gray-300 group-hover:text-white" />
+            </button>
+            {activities.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-[#a0a0ff] text-[#0a0a0c] text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#0a0a0c]">
+                {activities.length}
+              </span>
+            )}
+          </div>
+
+          {showNotifications && (
+            <div className="absolute right-0 mt-3 w-80 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl z-50 backdrop-blur-xl">
+              <div className="p-4 border-b border-white/5 flex justify-between items-center">
+                <h3 className="text-sm font-semibold text-white">Notifications</h3>
+                <Link href="#" className="text-xs text-gray-400 hover:text-white">
+                  View all
                 </Link>
-                
-                <button className="p-2.5 bg-green-500 text-black rounded-full hover:bg-green-400 transition-colors shadow-lg shadow-green-500/20">
-                <Plus size={20} />
-                </button>
+              </div>
+
+              <div className="max-h-80 overflow-y-auto">
+                {activities.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Activity className="w-10 h-10 opacity-30 mx-auto mb-2" />
+                    <p className="text-xs">No new notifications</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-5 p-4">
+                    {activities.slice(0, 5).map((activity) => (
+                      <div key={activity.id} className="flex flex-col gap-2 relative">
+                        <h4 className="text-xs font-bold leading-tight text-white">
+                          {activity.description}
+                        </h4>
+                        <div className="flex justify-between items-center mt-2">
+                          <div className="flex gap-2">
+                            <span className="text-[8px] text-gray-400">
+                              {formatRelativeTime(activity.timestamp)}
+                            </span>
+                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-purple-500/30 text-purple-300">
+                              {activity.type}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
+          )}
         </div>
-    </header>
+
+        {/* Search Bar */}
+        <div className="relative flex items-center bg-[#151518] rounded-2xl border border-white/5 px-4 py-2 w-48 md:w-64 focus-within:ring-1 focus-within:ring-white/20 transition-all">
+          <input
+            type="text"
+            placeholder="Search..."
+            className="bg-transparent border-none outline-none text-sm text-gray-200 placeholder-gray-500 w-full"
+          />
+          <Search size={16} className="text-gray-500 ml-2" />
+        </div>
+
+        {/* Settings Button */}
+        <Link 
+          href="/settings"
+          className="flex items-center space-x-2 bg-transparent hover:bg-white/5 border border-white/10 px-4 py-2 rounded-2xl text-sm font-semibold text-gray-300 transition-colors"
+        >
+          <span>Settings</span>
+          <Settings size={16} className="text-gray-500" />
+        </Link>
+      </div>
+    </div>
   );
 }

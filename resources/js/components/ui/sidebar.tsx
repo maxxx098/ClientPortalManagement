@@ -457,12 +457,13 @@ function SidebarMenu({ className, ...props }: React.ComponentProps<"ul">) {
   )
 }
 
-function SidebarMenuItem({ className, ...props }: React.ComponentProps<"li">) {
+function SidebarMenuItem({ className, isActive = false, ...props }: React.ComponentProps<"li"> & { isActive?: boolean }) {
   return (
     <li
       data-slot="sidebar-menu-item"
       data-sidebar="menu-item"
-      className={cn("group/menu-item relative", className)}
+      data-active={isActive}
+      className={cn("group/menu-item relative", isActive && "bg-sidebar-accent rounded-md", className)}
       {...props}
     />
   )

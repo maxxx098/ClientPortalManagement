@@ -544,7 +544,7 @@ export default function AllInvoices({ invoices, clients = [], stats, monthlyReve
           {/* Stats Cards */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
             {/* Financial Overview Card */}
-            <div className="lg:col-span-2 bg-[#18181b] rounded-[45px] p-10 relative border border-white/5">
+            <div className="lg:col-span-2  rounded-[45px] p-10 relative border border-white/5">
               <div className="grid grid-cols-3 gap-12">
                 <div>
                   <p className="text-gray-500 text-[13px] font-medium mb-3">Overdue</p>

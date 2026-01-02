@@ -122,6 +122,37 @@ class AppServiceProvider extends ServiceProvider
 
                 return $authData;
             },
+
+             'recentActivity' => function () {
+            $activities = collect();
+
+            // Latest projects
+            Project::latest()->take(3)->get()->each(function ($project) use ($activities) {
+                $activities->push([
+                    'id' => 'project-' . $project->id,
+                    'type' => 'project',
+                    'description' => "New project created: {$project->name}",
+                    'timestamp' => $project->created_at,
+                ]);
+            });
+
+            // Latest tasks (if you have Task model)
+            if (class_exists(\App\Models\Task::class)) {
+                \App\Models\Task::latest()->take(3)->get()->each(function ($task) use ($activities) {
+                    $activities->push([
+                        'id' => 'task-' . $task->id,
+                        'type' => 'task',
+                        'description' => "New task created: {$task->title}",
+                        'timestamp' => $task->created_at,
+                    ]);
+                });
+            }
+
+            return $activities
+                ->sortByDesc('timestamp')
+                ->values()
+                ->take(8);
+        },
         ]);
     }
 }

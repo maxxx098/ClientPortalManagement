@@ -573,9 +573,10 @@ const WorkProgressChart = () => {
         {/* Main Content */}
         <main className="flex-1 flex flex-col relative z-10 overflow-y-auto">
           {/* Dashboard Content */}
-          <div className="pl-8 pr-3 mt-3">
+          <div className="pl-8 pr-3 mt-3 ">
             {/* banner */}
-              <div className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-red-500 to-or600 p-8 text-white">
+              <div className='border border-white/5 rounded-2xl relative overflow-hidden'>
+                <div className="w-full bg-gradient-to-r from-red-500 to-or600 p-8">
 
                 {/* Content */}
                 <div className="relative z-10 max-w-xl">
@@ -588,14 +589,15 @@ const WorkProgressChart = () => {
                     Professional Online Courses
                   </h1>
 
-                  <button className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-indigo-600 shadow-md transition hover:bg-gray-100">
+                  <button className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-gray-100">
                     Join Now
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-white">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-black">
                       <ArrowRight size={14} />
                     </span>
                   </button>
                 </div>
               </div>
+            </div>
           </div>
           <div className="pl-8 pr-3 pb-8 flex flex-col gap-3 mt-3">
             {/* Top Stats */}
