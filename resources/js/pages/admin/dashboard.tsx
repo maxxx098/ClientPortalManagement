@@ -576,8 +576,6 @@ const WorkProgressChart = () => {
           <div className="pl-8 pr-3 mt-3">
             {/* banner */}
               <div className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-red-500 to-or600 p-8 text-white">
-                {/* Decorative Icon */}
-                <Sparkles className="absolute right-10 top-6 h-20 w-20 opacity-20" />
 
                 {/* Content */}
                 <div className="relative z-10 max-w-xl">
@@ -716,7 +714,7 @@ const WorkProgressChart = () => {
           </div>
         </main>
           {/* Right Sidebar - Meeting Schedule */}
-          <aside className="w-auto shrink-0 h-auto hidden mt-3 mr-8 xl:block bg-[#080808] border rounded-2xl border-white/5">
+          <aside className="max-w-[400px] w-full shrink-0 h-auto hidden mt-3 mr-8 xl:block bg-[#080808] border rounded-2xl border-white/5">
             <div className="p-5 flex flex-col gap-8 h-full overflow-y-auto">
               {/* Header */}
               <div className="flex justify-between items-center">
