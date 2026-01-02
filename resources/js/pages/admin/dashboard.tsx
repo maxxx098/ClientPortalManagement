@@ -25,7 +25,8 @@ import {
   ArrowDown01Icon,
   ChevronDown,
   AlarmCheck,
-  AlarmClock
+  AlarmClock,
+  ArrowRight
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import AppLayout from '@/layouts/app-layout';
@@ -568,111 +569,45 @@ const WorkProgressChart = () => {
 
   return (
     <AppLayout>
-      <header className="p-8 flex justify-between items-center ">
-          <div>
-            <h1 className="text-3xl font-medium flex items-center gap-3">
-              Welcome back! Admin
-            </h1>
-            <p className="text-xs text-gray-500 mt-1">{currentDate}</p>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-              <input 
-                type="text" 
-                placeholder="Search" 
-                className="bg-white/5 border border-white/10 rounded-full py-2.5 pl-10 pr-6 text-sm focus:outline-none focus:ring-1 focus:ring-green-500/30 w-64 transition-all"
-              />
-            </div>
-            
-            <div className="relative" ref={notifRef}>
-              <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
-              >
-                <Bell size={20} className="text-gray-400" />
-                {recentActivity.length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full shadow-lg shadow-red-500/50"></span>
-                )}
-              </button>
-
-              {showNotifications && (
-                <div className="absolute right-0 mt-3 w-80 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl z-50 backdrop-blur-xl">
-                  <div className="p-4 border-b border-white/5 flex justify-between items-center">
-                    <h3 className="text-sm font-semibold text-white">Notifications</h3>
-                    <Link href="#" className="text-xs text-gray-400 hover:text-white">
-                      View all
-                    </Link>
-                  </div>
-
-                  <div className="max-h-80 overflow-y-auto">
-                    {recentActivity.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        <Activity className="w-10 h-10 opacity-30 mx-auto mb-2" />
-                        <p className="text-xs">No new notifications</p>
-                      </div>
-                    ) : (
-                      recentActivity.slice(0, 5).map((activity) => (
-                        <div
-                          key={activity.id}
-                          className="flex items-start gap-3 p-4 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-                        >
-                          <div className="flex-shrink-0">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-xs">
-                              {activity.description.charAt(0).toUpperCase()}
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-white font-medium line-clamp-2">
-                              {activity.description}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatRelativeTime(activity.timestamp)}
-                            </p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <Link 
-              href="/admin/projects" 
-              className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
-            >
-              <Calendar size={18} className="text-gray-400" />
-              <span className="text-sm">Schedule</span>
-            </Link>
-            
-            <button className="p-2.5 bg-green-500 text-black rounded-full hover:bg-green-400 transition-colors shadow-lg shadow-green-500/20">
-              <Plus size={20} />
-            </button>
-          </div>
-        </header>
-
       <div className="flex min-h-screen w-full overflow-hidden">
         {/* Main Content */}
         <main className="flex-1 flex flex-col relative z-10 overflow-y-auto">
           {/* Dashboard Content */}
+          <div className="pl-8 pr-3 mt-3">
+            {/* banner */}
+              <div className="relative w-full overflow-hidden rounded-2xl bg-gradient-to-r from-red-500 to-or600 p-8 text-white">
+                {/* Decorative Icon */}
+                <Sparkles className="absolute right-10 top-6 h-20 w-20 opacity-20" />
+
+                {/* Content */}
+                <div className="relative z-10 max-w-xl">
+                  <p className="mb-2 text-xs font-semibold tracking-widest text-white/80">
+                    ONLINE COURSE
+                  </p>
+
+                  <h1 className="mb-6 text-3xl font-bold leading-snug sm:text-4xl">
+                    Sharpen Your Skills with <br />
+                    Professional Online Courses
+                  </h1>
+
+                  <button className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-indigo-600 shadow-md transition hover:bg-gray-100">
+                    Join Now
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-white">
+                      <ArrowRight size={14} />
+                    </span>
+                  </button>
+                </div>
+              </div>
+          </div>
           <div className="pl-8 pr-3 pb-8 flex flex-col gap-3 mt-3">
             {/* Top Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <StatCard 
                 label="Total Projects" 
                 value={stats.projects.total} 
                 trend={12} 
                 isNegative={false}
                 history={generateStatHistory(stats.projects.total)}
-              />
-              <StatCard 
-                label="Active Tasks" 
-                value={stats.tasks.in_progress} 
-                trend={8} 
-                isNegative={false}
-                history={generateStatHistory(stats.tasks.in_progress)}
               />
               <StatCard 
                 label="Completed" 
@@ -691,8 +626,8 @@ const WorkProgressChart = () => {
             </div>
 
             {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-              <div className="lg:col-span-3">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              <div className="lg:col-span-2">
                 <WorkProgressChart />
               </div>
               <div className="lg:col-span-1">
