@@ -83,7 +83,7 @@ export function AppSidebarHeader({
             <span className="text-gray-500 text-xs font-medium">
               {auth.user?.email}
             </span>
-            <span className="bg-[#1e1e24] text-[#a0a0ff] text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
+            <span className="bg-[#1e1e24] text-[#29b527] text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
               {auth.user?.role === 'admin' ? 'PRO' : 'FREE'}
             </span>
           </div>
@@ -169,7 +169,7 @@ export function AppSidebarHeader({
         <div className="h-10 w-px bg-white/10 mx-4 hidden md:block"></div>
 
         {/* Deposit Button */}
-        <button className="bg-[#b4b4ff] hover:bg-[#a0a0ff] text-[#0a0a0c] px-5 py-2 rounded-2xl flex items-center space-x-2 font-bold text-sm transition-all transform active:scale-95 shadow-lg shadow-indigo-500/20">
+        <button className="bg-[#10bc3e] hover:bg-[#42d408] text-[#0a0a0c] px-5 py-2 rounded-2xl flex items-center space-x-2 font-bold text-sm transition-all transform active:scale-95 shadow-lg shadow-green-500/20">
           <span>Deposit</span>
           <Wallet size={16} />
         </button>
@@ -187,7 +187,7 @@ export function AppSidebarHeader({
               <Bell size={18} className="text-gray-300 group-hover:text-white" />
             </button>
             {activities.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[#a0a0ff] text-[#0a0a0c] text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#0a0a0c]">
+              <span className="absolute -top-1 -right-1 bg-[#2bbe28] text-[#0a0a0c] text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#0a0a0c]">
                 {activities.length}
               </span>
             )}
