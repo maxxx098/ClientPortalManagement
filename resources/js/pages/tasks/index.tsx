@@ -223,6 +223,7 @@ export default function Index({
         
         <TaskBoard
           tasks={optimisticTasks}
+          clients={clients}
           searchQuery={searchQuery}
           expandedSections={expandedSections}
           routePrefix={routePrefix}

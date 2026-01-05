@@ -392,7 +392,7 @@ const handleDelete = () => {
 
         {/* Client (Admin only) */}
         {userRole === "admin" && (
-          <div className="space-y-2">
+          <div className="space-y-2 z-50 overflow-hidden">
             <Label htmlFor="client_key_id" className="text-gray-300">Client {!isViewMode && <span className="text-red-500">*</span>}</Label>
             <Select
               value={data.client_key_id || clientKey}
@@ -402,10 +402,10 @@ const handleDelete = () => {
               <SelectTrigger id="client_key_id" className="text-white">
                 <SelectValue placeholder="Select client" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-30 overflow-hidden">
                 {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.key}
+                  <SelectItem key={client.id} value={client.id} >
+                    Client:{client.id}
                   </SelectItem>
                 ))}
               </SelectContent>

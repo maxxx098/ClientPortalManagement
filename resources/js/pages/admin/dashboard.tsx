@@ -274,7 +274,7 @@ const CreditScoreGauge = () => {
           <path
             d={describeArc(center, center + 30, radius, 0, 54)}
             fill="none"
-            stroke="#d97706"
+            stroke="red"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
           />
@@ -283,7 +283,7 @@ const CreditScoreGauge = () => {
           <path
             d={describeArc(center, center + 30, radius, 66, 114)}
             fill="none"
-            stroke="#a855f7"
+            stroke="white"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
           />
@@ -292,7 +292,7 @@ const CreditScoreGauge = () => {
           <path
             d={describeArc(center, center + 30, radius, 126, 180)}
             fill="none"
-            stroke="#3b82f6"
+            stroke="green"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
           />
@@ -307,21 +307,21 @@ const CreditScoreGauge = () => {
       <div className="grid grid-cols-3 gap-4 w-full mt-2">
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5 mb-1.5">
-            <div className="w-1 h-3 rounded-full bg-amber-600"></div>
+            <div className="w-1 h-3 rounded-full bg-white"></div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Productivity</p>
           </div>
           <p className="text-xs font-bold">{stats.tasks.completed}</p>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5 mb-1.5">
-            <div className="w-1 h-3 rounded-full bg-purple-500"></div>
+            <div className="w-1 h-3 rounded-full bg-white"></div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Punctuality</p>
           </div>
           <p className="text-xs font-bold">{stats.tasks.in_progress}</p>
         </div>
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5 mb-1.5">
-            <div className="w-1 h-3 rounded-full bg-blue-500"></div>
+            <div className="w-1 h-3 rounded-full bg-white"></div>
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Creativity</p>
           </div>
           <p className="text-xs font-bold">{stats.tasks.pending}</p>
@@ -411,11 +411,11 @@ const WorkProgressChart = () => {
         </div>
         <div className="flex gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+            <div className="w-2 h-2 rounded-full bg-white"></div>
             <span className="text-[10px] text-gray-400">Post Success</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-orange-400"></div>
+            <div className="w-2 h-2 rounded-full bg-red-700"></div>
             <span className="text-[10px] text-gray-400">Post Failed</span>
           </div>
         </div>
@@ -477,10 +477,10 @@ const WorkProgressChart = () => {
             <Line 
               type="monotone" 
               dataKey="success" 
-              stroke="#8b5cf6" 
+              stroke="red" 
               strokeWidth={2.5}
               dot={{ 
-                fill: '#8b5cf6', 
+                fill: 'red', 
                 strokeWidth: 2, 
                 r: 3.5,
                 stroke: '#0a0a0a'
@@ -498,10 +498,10 @@ const WorkProgressChart = () => {
             <Line 
               type="monotone" 
               dataKey="failed" 
-              stroke="#fb923c" 
+              stroke="white" 
               strokeWidth={2.5}
               dot={{ 
-                fill: '#fb923c', 
+                fill: 'white', 
                 strokeWidth: 2, 
                 r: 3.5,
                 stroke: '#0a0a0a'
@@ -645,10 +645,10 @@ const WorkProgressChart = () => {
                     <div key={client.id} className="flex items-center justify-between group">
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold">
-                            {(client.name || '?').charAt(0).toUpperCase()}
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-900 flex items-center justify-center text-white text-xs font-semibold">
+                            C{String(client.id || '?').charAt(0).toUpperCase()}
                           </div>
-                          <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 ${client.status === 'active' ? 'bg-emerald-500' : 'bg-gray-500'} border-2 border-[#050505] rounded-full`}></div>
+                          <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 ${client.status === 'active' ? 'bg-white' : 'bg-gray-500'} border-2 border-[#050505] rounded-full`}></div>
                         </div>
                         <div>
                           <p className="text-xs font-semibold text-white">{client.name}</p>
@@ -687,8 +687,8 @@ const WorkProgressChart = () => {
               </div>
 
               {/* Recent Tasks Summary */}
-              <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 card-bg p-8 rounded-2xl relative">
-                <div className="flex justify-between items-center mb-10">
+              <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 card-bg p-5 rounded-2xl relative">
+                <div className="flex justify-between items-center mb-4">
                   <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Quick Tasks</h3>
                   <button className="p-1 hover:bg-white/5 rounded-full"><Plus size={16} className="text-gray-400" /></button>
                 </div>
@@ -778,7 +778,7 @@ const WorkProgressChart = () => {
 
               {/* Tabs */}
               <div className="flex items-center gap-6 px-2">
-                <button className="px-8 py-3 bg-gradient-to-r from-green-600/20 to-green-500/20 rounded-full text-xs font-semibold text-[#0a8301] shadow-lg">
+                <button className="px-8 py-3 bg-gradient-to-r from-gray-600/20 to-gray-500/20 rounded-full text-xs font-semibold text-[#ffffff] shadow-lg">
                   Meeting
                 </button>
                 <button className="text-xs font-semibold text-gray-600 hover:text-gray-400">Events</button>
