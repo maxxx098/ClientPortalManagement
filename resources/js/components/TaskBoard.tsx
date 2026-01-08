@@ -241,15 +241,20 @@ export default function TaskBoard({
             <ChevronDown className="w-4 h-4" />
           </button>
         </div>
-
+        
           {/* Filters Bar */}
           <div className="flex items-center justify-between px-6 py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 border card-bg rounded-lg px-3">
-                <span className="text-sm text-gray-400">Due Date:</span>
-                <Select value={dueDateFilter} onValueChange={setDueDateFilter}>
-                  <SelectTrigger className="w-24 h-auto border-0 bg-transparent p-0 text-sm font-medium text-white">
-                    <SelectValue />
+            <div className="flex items-center gap-3 relative">
+              <div className="border card-bg rounded-lg pr-2 bg-white/10 border-white">
+                <Select 
+                 value={dueDateFilter}
+                 onValueChange={setDueDateFilter}
+                 >
+                  <SelectTrigger className="w-auto h-auto border-0 bg-transparent p-0 text-sm font-medium gap-2 ">
+                    <div className="flex items-center gap-2 px-3 py-1.5">
+                      <span className="text-gray-400">Due Date:</span>
+                      <SelectValue className="text-white" />
+                    </div>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
@@ -261,11 +266,13 @@ export default function TaskBoard({
                 </Select>
               </div>
 
-              <div className="flex items-center gap-2 border card-bg rounded-lg px-3 py-1.5">
-                <span className="text-sm text-gray-400">Assignee:</span>
+              <div className="border card-bg rounded-lg">
                 <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-                  <SelectTrigger className="w-28 h-auto border-0 bg-transparent p-0 text-sm font-medium text-white">
-                    <SelectValue />
+                  <SelectTrigger className="w-auto h-auto border-0 bg-transparent p-0 text-sm font-medium gap-2">
+                    <div className="flex items-center gap-2 px-3 py-1.5">
+                      <span className="text-gray-400">Assignee:</span>
+                      <SelectValue className="text-white" />
+                    </div>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
@@ -279,11 +286,13 @@ export default function TaskBoard({
                 </Select>
               </div>
 
-              <div className="flex items-center gap-2 border card-bg rounded-lg px-3 py-1.5">
-                <span className="text-sm text-gray-400">Priority:</span>
+              <div className="border card-bg rounded-lg">
                 <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                  <SelectTrigger className="w-20 h-auto border-0 bg-transparent p-0 text-sm font-medium text-white">
-                    <SelectValue />
+                  <SelectTrigger className="w-auto h-auto border-0 bg-transparent p-0 text-sm font-medium gap-2">
+                    <div className="flex items-center gap-2 px-3 py-1.5">
+                      <span className="text-gray-400">Priority:</span>
+                      <SelectValue className="text-white" />
+                    </div>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
@@ -299,6 +308,7 @@ export default function TaskBoard({
                 Advance Filters
               </button>
             </div>
+            
             <button className="px-4 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition flex items-center gap-2">
               <Plus className="w-4 h-4" />
               Add New
