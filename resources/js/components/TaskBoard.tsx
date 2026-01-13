@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React from "react"; // React import for JSX support
 import {
   Plus,
   Calendar,
