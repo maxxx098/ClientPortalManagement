@@ -39,7 +39,7 @@ interface Task {
   client_key_id?: string;
   file?: string | null;
   voice_message?: string | null;
-  due_date?: string | null;
+  due_date?: string | null; // due_date as ISO string
 }
 
 type ProgressSections = {
