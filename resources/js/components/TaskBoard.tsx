@@ -93,7 +93,7 @@ export default function TaskBoard({
 
   const getClientId = (clientKeyId?: string) => {
     if (!clientKeyId) return null;
-    const client = clients.find((c) => c.key === clientKeyId);
+    const client = clients.find((c) => c.key === clientKeyId); // client_key_id maps to client.key
     return client?.id;
   };
 
