@@ -652,7 +652,7 @@ const WorkProgressChart = () => {
                         </div>
                         <div>
                           <p className="text-xs font-semibold text-white">{client.name}</p>
-                          <p className="text-[10px] text-gray-500">{client.projects_count} projects</p>
+                          <p className="text-[10px] text-gray-500">{client.projects_count} projects</p> 
                         </div>
                       </div>
                       <span className="text-[10px] text-gray-500 font-medium">{formatRelativeTime(client.last_activity)}</span>
