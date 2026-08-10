@@ -1,7 +1,11 @@
 <?php
 
 use App\Http\Controllers\Admin\ClientKeyController;
+use App\Http\Controllers\Admin\ContractController;
+use App\Http\Controllers\Admin\LeadController;
+use App\Http\Controllers\Admin\OnboardingController;
 use App\Http\Controllers\Admin\ProjectController as AdminProjectController;
+use App\Http\Controllers\Admin\ProposalController;
 use App\Http\Controllers\Admin\TaskController as AdminTaskController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Admin\AdminDashboardController;
@@ -40,6 +44,32 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     // Admin Dashboard
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+    // Lead / proposal / onboarding flow
+    Route::get('/leads', [LeadController::class, 'index'])->name('leads.index');
+    Route::get('/leads/create', [LeadController::class, 'create'])->name('leads.create');
+    Route::get('/leads/{lead}', [LeadController::class, 'show'])->name('leads.show');
+    Route::post('/leads', [LeadController::class, 'store'])->name('leads.store');
+    Route::patch('/leads/{lead}', [LeadController::class, 'update'])->name('leads.update');
+    Route::post('/leads/{lead}/convert', [LeadController::class, 'convertToClient'])->name('leads.convert');
+
+    Route::get('/proposals', [ProposalController::class, 'index'])->name('proposals.index');
+    Route::get('/proposals/create', [ProposalController::class, 'create'])->name('proposals.create');
+    Route::post('/proposals', [ProposalController::class, 'store'])->name('proposals.store');
+    Route::get('/proposals/{proposal}', [ProposalController::class, 'show'])->name('proposals.show');
+    Route::patch('/proposals/{proposal}', [ProposalController::class, 'update'])->name('proposals.update');
+    Route::post('/proposals/{proposal}/send', [ProposalController::class, 'send'])->name('proposals.send');
+    Route::post('/proposals/{proposal}/accept', [ProposalController::class, 'accept'])->name('proposals.accept');
+
+    Route::get('/contracts/{contract}', [ContractController::class, 'show'])->name('contracts.show');
+    Route::post('/contracts', [ContractController::class, 'store'])->name('contracts.store');
+    Route::patch('/contracts/{contract}', [ContractController::class, 'update'])->name('contracts.update');
+    Route::post('/contracts/{contract}/sign', [ContractController::class, 'sign'])->name('contracts.sign');
+
+    Route::get('/clients/{client}/onboarding', [OnboardingController::class, 'show'])->name('onboarding.show');
+    Route::post('/clients/{client}/onboarding/start', [OnboardingController::class, 'start'])->name('onboarding.start');
+    Route::patch('/onboarding/steps/{step}', [OnboardingController::class, 'updateStep'])->name('onboarding.updateStep');
+    Route::post('/clients/{client}/onboarding/complete', [OnboardingController::class, 'complete'])->name('onboarding.complete');
     
     // Client Keys Management
     Route::get('/client-keys', [ClientKeyController::class, 'index'])->name('client-keys.index');

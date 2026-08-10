@@ -1,4 +1,3 @@
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -10,153 +9,173 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, FolderKanban, KeyRound, LayoutGrid, PenBoxIcon, ProjectorIcon, TagsIcon } from 'lucide-react';
-import AppLogo from './app-logo';
-import { usePage } from '@inertiajs/react';
-import projects from '@/routes/admin/projects';
-import clientProjects from '@/routes/client/projects';
-import clientKeys from '@/routes/admin/client-keys';
-import adminTasks from '@/routes/admin/tasks';
-import clientTasks from '@/routes/client/tasks';
-import adminInvoices from '@/routes/admin/invoices/index';
-import clientInvoices from '@/routes/client/invoices/index';
 import { dashboard } from '@/routes';
+import clientKeys from '@/routes/admin/client-keys';
+import adminInvoices from '@/routes/admin/invoices/index';
+import leads from '@/routes/admin/leads';
+import projects from '@/routes/admin/projects';
+import adminTasks from '@/routes/admin/tasks';
+import clientInvoices from '@/routes/client/invoices/index';
+import clientProjects from '@/routes/client/projects';
+import clientTasks from '@/routes/client/tasks';
+import { type NavItem } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
+import {
+    Folder,
+    FolderKanban,
+    KeyRound,
+    LayoutGrid,
+    PenBoxIcon,
+    TagsIcon,
+} from 'lucide-react';
+import AppLogo from './app-logo';
 
 export function AppSidebar() {
-  const { props } = usePage<{
-    auth?: {
-        user?: { 
-          email: string;
-          role: string;
-          is_admin: boolean;
+    const { props } = usePage<{
+        auth?: {
+            user?: {
+                email: string;
+                role: string;
+                is_admin: boolean;
+            };
+            projectsForSidebar?: { id: number; name: string }[];
+            client_key_id?: string;
+            is_client?: boolean;
         };
-        projectsForSidebar?: { id: number; name: string }[];
-        client_key_id?: string;
-        is_client?: boolean;
-    };
-  }>();
+    }>();
 
-  const user = props.auth?.user;
-  const clientKeyId = props.auth?.client_key_id;
-  
-  let isClient = props.auth?.is_client ?? false;
-  
-  // If is_client is false but user role is 'client' or email starts with 'client-', override it
-  if (!isClient && user) {
-    if (user.role === 'client' || user.email?.startsWith('client-')) {
-      isClient = true;
-      console.warn('⚠️ is_client was false but user is clearly a client - overriding!');
+    const user = props.auth?.user;
+    const clientKeyId = props.auth?.client_key_id;
+
+    let isClient = props.auth?.is_client ?? false;
+
+    // If is_client is false but user role is 'client' or email starts with 'client-', override it
+    if (!isClient && user) {
+        if (user.role === 'client' || user.email?.startsWith('client-')) {
+            isClient = true;
+            console.warn(
+                '⚠️ is_client was false but user is clearly a client - overriding!',
+            );
+        }
     }
-  }
-  
-  const projectsForSidebar = props.auth?.projectsForSidebar ?? [];
 
-  // Debug logging
-  console.log('=== AppSidebar Debug ===', {
-    user_email: user?.email,
-    user_role: user?.role,
-    user_is_admin: user?.is_admin,
-    client_key_id: clientKeyId,
-    is_client: isClient,
-    has_user: !!user,
-    projectsCount: projectsForSidebar.length,
-    projects: projectsForSidebar,
-    auth_props: props.auth,
-  });
+    const projectsForSidebar = props.auth?.projectsForSidebar ?? [];
 
-  // Determine dashboard URL based on role
-  const dashboardUrl = isClient ? dashboard.url() : dashboard.url();
-  console.log('Determined dashboardUrl:', dashboardUrl);
-  
-  const mainNavItems: NavItem[] = [
-    { title: "Dashboard", href: dashboardUrl, icon: LayoutGrid },
-  ];
-
-  // Add Tasks navigation with correct route based on role
-  console.log('Determining nav items...', { isClient, is_admin: user?.is_admin });
-  
-  if (isClient) {
-    console.log('Adding CLIENT Tasks nav item');
-    // Client Tasks Route
-    mainNavItems.push({
-      title: "Tasks",
-      href: clientTasks.index.url(),
-      icon: TagsIcon,
+    // Debug logging
+    console.log('=== AppSidebar Debug ===', {
+        user_email: user?.email,
+        user_role: user?.role,
+        user_is_admin: user?.is_admin,
+        client_key_id: clientKeyId,
+        is_client: isClient,
+        has_user: !!user,
+        projectsCount: projectsForSidebar.length,
+        projects: projectsForSidebar,
+        auth_props: props.auth,
     });
 
-      mainNavItems.push({
-      title: "Invoices",
-      href: clientInvoices.index.url(),
-      icon: PenBoxIcon,
+    // Determine dashboard URL based on role
+    const dashboardUrl = isClient ? dashboard.url() : dashboard.url();
+    console.log('Determined dashboardUrl:', dashboardUrl);
+
+    const mainNavItems: NavItem[] = [
+        { title: 'Dashboard', href: dashboardUrl, icon: LayoutGrid },
+    ];
+
+    // Add Tasks navigation with correct route based on role
+    console.log('Determining nav items...', {
+        isClient,
+        is_admin: user?.is_admin,
     });
 
-    
-    console.log('Adding CLIENT Projects nav item');
-    // Client Projects Route
-    mainNavItems.push({
-      title: "Projects",
-      href: clientProjects.index.url(),
-      icon: FolderKanban,
-    });
-  } else if (user?.is_admin) {
-    console.log('Adding ADMIN Tasks nav item');
-    // Admin Tasks Route
-    mainNavItems.push({
-      title: "Tasks",
-      href: adminTasks.index.url(),
-      icon: TagsIcon,
-    });
+    if (isClient) {
+        console.log('Adding CLIENT Tasks nav item');
+        // Client Tasks Route
+        mainNavItems.push({
+            title: 'Tasks',
+            href: clientTasks.index.url(),
+            icon: TagsIcon,
+        });
 
-    // Admin Invoices Route
-    mainNavItems.push({
-      title: "Invoices",
-      href: adminInvoices.index.url(),
-      icon: Folder,
-    });
-    
-    console.log('Adding ADMIN Projects nav item');
-    // Admin Projects Route
-    mainNavItems.push({
-      title: "Projects",
-      href: projects.index.url(),
-      icon: FolderKanban,
-    });
-    
-    // Only show Client Keys to admins
-    mainNavItems.push({
-      title: "Client Keys",
-      href: clientKeys.index.url(),
-      icon: KeyRound,
-    });
-  } else {
-    console.log('NOT adding any Projects/Tasks nav items', { isClient, is_admin: user?.is_admin });
-  }
+        mainNavItems.push({
+            title: 'Invoices',
+            href: clientInvoices.index.url(),
+            icon: PenBoxIcon,
+        });
 
-  console.log('Final mainNavItems:', mainNavItems);
+        console.log('Adding CLIENT Projects nav item');
+        // Client Projects Route
+        mainNavItems.push({
+            title: 'Projects',
+            href: clientProjects.index.url(),
+            icon: FolderKanban,
+        });
+    } else if (user?.is_admin) {
+        console.log('Adding ADMIN Tasks nav item');
+        mainNavItems.push({
+            title: 'Leads',
+            href: leads.index.url(),
+            icon: PenBoxIcon,
+        });
 
-  return (
-    <Sidebar collapsible="icon" variant="inset">
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href={dashboardUrl} prefetch>
-                <AppLogo />
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+        // Admin Tasks Route
+        mainNavItems.push({
+            title: 'Tasks',
+            href: adminTasks.index.url(),
+            icon: TagsIcon,
+        });
 
-      <SidebarContent>
-        <NavMain items={mainNavItems} />
-      </SidebarContent>
+        // Admin Invoices Route
+        mainNavItems.push({
+            title: 'Invoices',
+            href: adminInvoices.index.url(),
+            icon: Folder,
+        });
 
-      <SidebarFooter>
-        <NavUser />
-      </SidebarFooter>
-    </Sidebar>
-  );
+        console.log('Adding ADMIN Projects nav item');
+        // Admin Projects Route
+        mainNavItems.push({
+            title: 'Projects',
+            href: projects.index.url(),
+            icon: FolderKanban,
+        });
+
+        // Only show Client Keys to admins
+        mainNavItems.push({
+            title: 'Client Keys',
+            href: clientKeys.index.url(),
+            icon: KeyRound,
+        });
+    } else {
+        console.log('NOT adding any Projects/Tasks nav items', {
+            isClient,
+            is_admin: user?.is_admin,
+        });
+    }
+
+    console.log('Final mainNavItems:', mainNavItems);
+
+    return (
+        <Sidebar collapsible="icon" variant="inset">
+            <SidebarHeader>
+                <SidebarMenu>
+                    <SidebarMenuItem>
+                        <SidebarMenuButton size="lg" asChild>
+                            <Link href={dashboardUrl} prefetch>
+                                <AppLogo />
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </SidebarMenu>
+            </SidebarHeader>
+
+            <SidebarContent>
+                <NavMain items={mainNavItems} />
+            </SidebarContent>
+
+            <SidebarFooter>
+                <NavUser />
+            </SidebarFooter>
+        </Sidebar>
+    );
 }

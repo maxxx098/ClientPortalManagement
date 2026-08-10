@@ -1,7 +1,7 @@
 import { Head, Link } from "@inertiajs/react"
 import AppLayout from '@/layouts/app-layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { EyeIcon } from "lucide-react"
+import { Badge } from '@/components/ui/badge'
+import { EyeIcon, Users, Activity, CheckCircle2, Flame } from "lucide-react"
 
 interface Project {
   id: number
@@ -19,72 +19,22 @@ interface Props {
 }
 
 export default function Index({ projects }: Props) {
-  const priorityStyles = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case "high":
-        return { 
-          gradient: "from-red-900 to-red-950 dark:from-red-800 dark:to-red-900",
-          border: "border-red-900/50 dark:border-red-800/50",
-          text: "text-red-900 dark:text-red-400"
-        }
-      case "medium":
-        return { 
-          gradient: "from-orange-900 to-orange-950 dark:from-orange-800 dark:to-orange-900",
-          border: "border-orange-900/50 dark:border-orange-800/50",
-          text: "text-orange-900 dark:text-orange-400"
-        }
-      case "low":
-        return { 
-          gradient: "from-teal-900 to-teal-950 dark:from-teal-800 dark:to-teal-900",
-          border: "border-teal-900/50 dark:border-teal-800/50",
-          text: "text-teal-900 dark:text-teal-400"
-        }
-      default:
-        return { 
-          gradient: "from-slate-800 to-slate-950 dark:from-slate-700 dark:to-slate-800",
-          border: "border-slate-800/50 dark:border-slate-700/50",
-          text: "text-slate-800 dark:text-slate-400"
-        }
-    }
+  const getStatusVariant = (status: string): "default" | "outline" | "secondary" => {
+    const s = status.toLowerCase()
+    if (s === "completed") return "secondary"
+    if (s === "on_hold") return "default"
+    return "outline"
   }
 
-  const statusStyles = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "completed":
-        return { 
-          bg: "bg-emerald-950/30 dark:bg-emerald-900/20", 
-          text: "text-emerald-800 dark:text-emerald-400",
-          border: "border-emerald-900/30 dark:border-emerald-800/30"
-        }
-      case "in_progress":
-        return { 
-          bg: "bg-blue-950/30 dark:bg-blue-900/20", 
-          text: "text-blue-800 dark:text-blue-400",
-          border: "border-blue-900/30 dark:border-blue-800/30"
-        }
-      case "on_hold":
-        return { 
-          bg: "bg-amber-950/30 dark:bg-amber-900/20", 
-          text: "text-amber-800 dark:text-amber-400",
-          border: "border-amber-900/30 dark:border-amber-800/30"
-        }
-      case "planned":
-        return { 
-          bg: "bg-purple-950/30 dark:bg-purple-900/20", 
-          text: "text-purple-800 dark:text-purple-400",
-          border: "border-purple-900/30 dark:border-purple-800/30"
-        }
-      default:
-        return { 
-          bg: "bg-gray-950/30 dark:bg-gray-900/20", 
-          text: "text-gray-800 dark:text-gray-400",
-          border: "border-gray-900/30 dark:border-gray-800/30"
-        }
-    }
+  const getPriorityVariant = (priority: string): "default" | "outline" | "secondary" => {
+    const p = priority.toLowerCase()
+    if (p === "high") return "default"
+    if (p === "low") return "secondary"
+    return "outline"
   }
 
   const formatStatus = (status: string) => {
-    return status.split('_').map(word => 
+    return status.split('_').map(word =>
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ')
   }
@@ -109,7 +59,6 @@ export default function Index({ projects }: Props) {
     return Math.min(Math.max(progress, 0), 100)
   }
 
-  // Calculate dashboard stats
   const totalProjects = projects.length
   const activeProjects = projects.filter(p => p.status.toLowerCase() === 'in_progress').length
   const completedProjects = projects.filter(p => p.status.toLowerCase() === 'completed').length
@@ -119,220 +68,147 @@ export default function Index({ projects }: Props) {
     <AppLayout>
       <Head title="My Projects" />
 
-      <div className="min-h-screen">
-        <div className="container mx-auto px-4 py-12 max-w-7xl">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 dark:text-white mb-3">
-              Projects
-            </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              Your active workspace
+      <div className="min-h-screen bg-background pb-16">
+        <main className="mx-auto w-full max-w-[1500px] px-8 py-8">
+
+          {/* Masthead */}
+          <div className="mb-8 border-b border-border pb-6">
+            <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              Workspace
             </p>
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground">Projects</h1>
           </div>
 
-          {/* Dashboard Stats Cards */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Projects
-                </CardTitle>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  className="h-4 w-4 text-muted-foreground"
-                >
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalProjects}</div>
-                <p className="text-xs text-muted-foreground">
-                  All projects assigned to you
-                </p>
-              </CardContent>
-            </Card>
+          {/* Stats Row */}
+          <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div className="border border-border p-6">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Total Projects</p>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <h3 className="font-mono text-3xl font-semibold tabular-nums text-foreground">{totalProjects}</h3>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                Assigned to you
+              </p>
+            </div>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Active Projects
-                </CardTitle>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  className="h-4 w-4 text-muted-foreground"
-                >
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                </svg>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{activeProjects}</div>
-                <p className="text-xs text-muted-foreground">
-                  Currently in progress
-                </p>
-              </CardContent>
-            </Card>
+            <div className="border border-border p-6">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Active</p>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <h3 className="font-mono text-3xl font-semibold tabular-nums text-foreground">{activeProjects}</h3>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                In progress
+              </p>
+            </div>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Completed
-                </CardTitle>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  className="h-4 w-4 text-muted-foreground"
-                >
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{completedProjects}</div>
-                <p className="text-xs text-muted-foreground">
-                  Successfully finished
-                </p>
-              </CardContent>
-            </Card>
+            <div className="border border-border bg-foreground p-6 text-background">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="font-mono text-[11px] uppercase tracking-wider text-background/60">Completed</p>
+                <CheckCircle2 className="h-4 w-4 text-background/60" />
+              </div>
+              <h3 className="font-mono text-3xl font-semibold tabular-nums">{completedProjects}</h3>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-background/60">
+                Successfully finished
+              </p>
+            </div>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  High Priority
-                </CardTitle>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  className="h-4 w-4 text-muted-foreground"
-                >
-                  <path d="M12 2v20M2 12h20" />
-                </svg>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{highPriorityProjects}</div>
-                <p className="text-xs text-muted-foreground">
-                  Requires immediate attention
-                </p>
-              </CardContent>
-            </Card>
+            <div className="border border-border p-6">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">High Priority</p>
+                <Flame className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <h3 className="font-mono text-3xl font-semibold tabular-nums text-foreground">{highPriorityProjects}</h3>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                Needs attention
+              </p>
+            </div>
           </div>
 
-          {/* Add Task Feature */}
-          
           {/* Projects Grid */}
           {projects.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24">
-              <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-6">
-                <div className="text-4xl">✦</div>
+            <div className="flex flex-col items-center justify-center border border-border py-24">
+              <div className="mb-6 flex h-16 w-16 items-center justify-center border border-border">
+                <div className="text-2xl text-muted-foreground">✦</div>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+              <h3 className="mb-3 text-xl font-semibold text-foreground">
                 No Projects Yet
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-center max-w-md">
+              <p className="max-w-md text-center text-sm text-muted-foreground">
                 Contact your administrator to get started with your first project
               </p>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
               {projects.map((project) => {
-                const priority = priorityStyles(project.priority)
-                const status = statusStyles(project.status)
                 const progress = getProgress(project.start_date, project.due_date)
 
                 return (
                   <Link
                     key={project.id}
                     href={`/client/projects/${project.id}`}
-                    className="group block"
+                    className="group block border border-border p-6 transition-colors hover:bg-accent"
                   >
-                    <div className="relative h-full rounded-xl border">
-                      <div className="p-6 space-y-5">
-                        {/* Title */}
-                        <div className="space-y-3">
-                          <h2 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-gray-700 dark:group-hover:text-gray-200 transition-colors line-clamp-2 leading-tight min-h-[3.5rem]">
-                            {project.name}
-                          </h2>
-                          
-                          {/* Status & Priority Badges */}
-                          <div className="flex flex-wrap gap-2">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${status.bg} ${status.text} ${status.border}`}>
-                              {formatStatus(project.status)}
-                            </span>
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold ${priority.text}`}>
-                              {project.priority.toUpperCase()}
-                            </span>
+                    <div className="space-y-5">
+                      {/* Title */}
+                      <div className="space-y-3">
+                        <h2 className="min-h-[3.5rem] text-lg font-semibold leading-tight text-foreground line-clamp-2">
+                          {project.name}
+                        </h2>
+
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant={getStatusVariant(project.status)} className="rounded-none font-mono text-[9px] uppercase">
+                            {formatStatus(project.status)}
+                          </Badge>
+                          <Badge variant={getPriorityVariant(project.priority)} className="rounded-none font-mono text-[9px] uppercase">
+                            {project.priority}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <p className="min-h-[4rem] text-sm leading-relaxed text-muted-foreground line-clamp-3">
+                        {project.description || "No description provided."}
+                      </p>
+
+                      {/* Progress Bar */}
+                      <div className="space-y-2 pt-2">
+                        <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                          <span>Progress</span>
+                          <span className="font-bold text-foreground">{Math.round(progress)}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-muted">
+                          <div
+                            className="h-full bg-foreground transition-all duration-500"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Dates */}
+                      <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+                        <div className="space-y-1">
+                          <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                            Start
+                          </div>
+                          <div className="text-sm font-semibold text-foreground">
+                            {formatDate(project.start_date)}
                           </div>
                         </div>
-
-                        {/* Description */}
-                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 leading-relaxed min-h-[4rem]">
-                          {project.description || "No description provided."}
-                        </p>
-
-                        {/* Progress Bar */}
-                        <div className="space-y-2 pt-2">
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="text-gray-500 dark:text-gray-500 font-medium">Progress</span>
-                            <span className="text-gray-700 dark:text-gray-300 font-bold">{Math.round(progress)}%</span>
+                        <div className="space-y-1">
+                          <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                            Due
                           </div>
-                          <div className="h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full bg-gradient-to-r ${priority.gradient} transition-all duration-500 rounded-full`}
-                              style={{ width: `${progress}%` }}
-                            ></div>
+                          <div className="text-sm font-semibold text-foreground">
+                            {formatDate(project.due_date)}
                           </div>
                         </div>
+                      </div>
 
-                        {/* Dates */}
-                        <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200 dark:border-gray-800">
-                          <div className="space-y-1">
-                            <div className="text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wide">
-                              Start
-                            </div>
-                            <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                              {formatDate(project.start_date)}
-                            </div>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wide">
-                              Due
-                            </div>
-                            <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                              {formatDate(project.due_date)}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* View Button */}
-                        <div className="pt-2">
-                          <div className={`w-full bg-gradient-to-r ${priority.gradient} flex items-center justify-center gap-2 text-white rounded-lg px-4 py-2.5 text-center font-semibold text-sm group-hover:opacity-90 transition-all duration-300`}>
-                            View Details <EyeIcon size={16}/>
-                          </div>
-                        </div>
+                      {/* View Button */}
+                      <div className="flex items-center justify-center gap-2 bg-foreground px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-background transition-opacity group-hover:opacity-90">
+                        View Details <EyeIcon size={14} />
                       </div>
                     </div>
                   </Link>
@@ -340,7 +216,7 @@ export default function Index({ projects }: Props) {
               })}
             </div>
           )}
-        </div>
+        </main>
       </div>
     </AppLayout>
   )

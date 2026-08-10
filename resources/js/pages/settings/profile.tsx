@@ -51,11 +51,16 @@ export default function Profile({
                         {({ processing, recentlySuccessful, errors }) => (
                             <>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="name">Name</Label>
+                                    <Label
+                                        htmlFor="name"
+                                        className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground"
+                                    >
+                                        Name
+                                    </Label>
 
                                     <Input
                                         id="name"
-                                        className="mt-1 block w-full"
+                                        className="mt-1 block w-full rounded-none border-border"
                                         defaultValue={auth.user.name}
                                         name="name"
                                         required
@@ -70,12 +75,17 @@ export default function Profile({
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label htmlFor="email">Email address</Label>
+                                    <Label
+                                        htmlFor="email"
+                                        className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground"
+                                    >
+                                        Email address
+                                    </Label>
 
                                     <Input
                                         id="email"
                                         type="email"
-                                        className="mt-1 block w-full"
+                                        className="mt-1 block w-full rounded-none border-border"
                                         defaultValue={auth.user.email}
                                         name="email"
                                         required
@@ -107,10 +117,8 @@ export default function Profile({
 
                                             {status ===
                                                 'verification-link-sent' && (
-                                                <div className="mt-2 text-sm font-medium text-green-600">
-                                                    A new verification link has
-                                                    been sent to your email
-                                                    address.
+                                                <div className="mt-3 inline-flex items-center gap-2 border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-foreground">
+                                                    New verification link sent
                                                 </div>
                                             )}
                                         </div>
@@ -120,6 +128,7 @@ export default function Profile({
                                     <Button
                                         disabled={processing}
                                         data-test="update-profile-button"
+                                        className="rounded-none bg-foreground font-mono text-xs font-bold uppercase tracking-wider text-background hover:bg-foreground/90"
                                     >
                                         Save
                                     </Button>
@@ -131,7 +140,7 @@ export default function Profile({
                                         leave="transition ease-in-out"
                                         leaveTo="opacity-0"
                                     >
-                                        <p className="text-sm text-neutral-600">
+                                        <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
                                             Saved
                                         </p>
                                     </Transition>

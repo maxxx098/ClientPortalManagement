@@ -12,6 +12,8 @@ return new class extends Migration {
             $table->boolean('locked')->default(false);
             $table->timestamp('locked_at')->nullable();
             $table->string('key')->unique();
+            $table->string('name')->nullable();
+            $table->string('email')->nullable();
             $table->boolean('used')->default(false);
             $table->timestamps();
         });

@@ -2,19 +2,16 @@
 
 import { Head, router } from "@inertiajs/react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Progress } from "@/components/ui/progress"
 import AppLayout from "@/layouts/app-layout"
 import TaskSidebar from "@/components/ui/TaskSidebar"
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Clock, 
-  FileText, 
-  Info, 
-  Tag, 
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  FileText,
+  Info,
+  Tag,
   TrendingUp,
   Users,
   CheckCircle2,
@@ -80,45 +77,18 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
   const [sidebarMode, setSidebarMode] = useState<"view" | "edit" | "create">("view")
   const [showDueDateAlert, setShowDueDateAlert] = useState(false)
 
-  const priorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case "high":
-        return "bg-red-500/10 text-red-400 border-red-500/20"
-      case "medium":
-        return "bg-amber-500/10 text-amber-400 border-amber-500/20"
-      case "low":
-        return "bg-blue-500/10 text-blue-400 border-blue-500/20"
-      default:
-        return "bg-slate-500/10 text-slate-400 border-slate-500/20"
-    }
+  const getStatusVariant = (status: string): "default" | "outline" | "secondary" => {
+    const s = status.toLowerCase()
+    if (s === "completed" || s === "done") return "secondary"
+    if (s === "on_hold") return "default"
+    return "outline"
   }
 
-  const statusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "completed":
-        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-      case "in_progress":
-        return "bg-amber-500/10 text-amber-400 border-amber-500/20"
-      case "on_hold":
-        return "bg-orange-500/10 text-orange-400 border-orange-500/20"
-      case "planned":
-        return "bg-blue-500/10 text-blue-400 border-blue-500/20"
-      default:
-        return "bg-slate-500/10 text-slate-400 border-slate-500/20"
-    }
-  }
-
-  const taskStatusColor = (status: string) => {
-    switch (status) {
-      case "done":
-        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-      case "in_progress":
-        return "bg-amber-500/10 text-amber-400 border-amber-500/20"
-      case "todo":
-        return "bg-blue-500/10 text-blue-400 border-blue-500/20"
-      default:
-        return "bg-slate-500/10 text-slate-400 border-slate-500/20"
-    }
+  const getPriorityVariant = (priority: string): "default" | "outline" | "secondary" => {
+    const p = priority.toLowerCase()
+    if (p === "high") return "default"
+    if (p === "low") return "secondary"
+    return "outline"
   }
 
   const formatDate = (date: string) => {
@@ -157,7 +127,7 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
     setTaskSidebarOpen(false)
     setSelectedTask(null)
   }
-  
+
   const handleTaskDelete = (taskId: number) => {
     setIsProcessing(true)
     router.delete(`/client/tasks/${taskId}`, {
@@ -192,359 +162,258 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
     setTaskSidebarOpen(true);
   };
 
+  const taskGroups: { label: string; items: Task[] }[] = [
+    { label: "To Do", items: todoTasks },
+    { label: "In Progress", items: inProgressTasks },
+    { label: "Done", items: doneTasks },
+  ]
+
   return (
     <AppShell variant="sidebar">
       <Head title={project.name} />
-     <AppSidebar />
-    <SidebarInset 
-      className="overflow-x-hidden transition-[margin-right] duration-300 ease-linear"
-      style={{
-        marginRight: taskSidebarOpen ? '24rem' : '0'
-      }}
-    >
-      <div className="min-h-screen relative">
-        <div className="container mx-auto p-6 lg:p-8 space-y-6">
-          <div className="flex flex-col gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.visit("/client/projects")}
-              className="w-fit gap-2 hover:bg-muted"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Projects
-            </Button>
+      <AppSidebar />
+      <SidebarInset
+        className="overflow-x-hidden transition-[margin-right] duration-300 ease-linear"
+        style={{
+          marginRight: taskSidebarOpen ? '24rem' : '0'
+        }}
+      >
+        <div className="relative min-h-screen bg-background pb-16">
+          <main className="mx-auto w-full max-w-[1500px] px-8 py-8">
 
-            <div className="flex items-start justify-between gap-4 flex-wrap pb-6 border-b border-border/50">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-                  <Badge variant="outline" className={statusColor(project.status)}>
-                    {formatStatus(project.status)}
-                  </Badge>
+            {/* Masthead */}
+            <div className="mb-8 border-b border-border pb-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.visit("/client/projects")}
+                className="mb-5 w-fit gap-2 rounded-none border-border font-mono text-xs font-bold uppercase tracking-wider"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Projects
+              </Button>
+
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="text-4xl font-semibold tracking-tight text-foreground">{project.name}</h1>
+                    <Badge variant={getStatusVariant(project.status)} className="rounded-none font-mono text-[10px] uppercase">
+                      {formatStatus(project.status)}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-4 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <Tag className="h-3.5 w-3.5" />
+                      Project #{project.id}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5" />
+                      Created {formatDate(project.created_at)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Tag className="h-3.5 w-3.5" />
-                    Project #{project.id}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />
-                    Created {formatDate(project.created_at)}
-                  </span>
+
+                <Badge variant={getPriorityVariant(project.priority)} className="rounded-none font-mono text-[10px] uppercase">
+                  {project.priority} Priority
+                </Badge>
+              </div>
+            </div>
+
+            {/* Stats Row */}
+            <div className="mb-8 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+              <div className="border border-border p-6">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Progress</p>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <h3 className="mb-2 font-mono text-3xl font-semibold tabular-nums text-foreground">{project.progress || 0}%</h3>
+                <div className="h-1.5 w-full bg-muted">
+                  <div className="h-full bg-foreground transition-all" style={{ width: `${project.progress || 0}%` }} />
                 </div>
               </div>
 
-              <Badge variant="outline" className={priorityColor(project.priority)}>
-                {project.priority.toUpperCase()} Priority
-              </Badge>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Progress</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{project.progress || 0}%</div>
-                <Progress value={project.progress || 0} className="mt-2" />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{project.tasks_count || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">
+              <div className="border border-border p-6">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Total Tasks</p>
+                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <h3 className="font-mono text-3xl font-semibold tabular-nums text-foreground">{project.tasks_count || 0}</h3>
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                   Tasks in this project
                 </p>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Days Remaining</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {daysUntilDue !== null ? (
-                    daysUntilDue >= 0 ? daysUntilDue : 'Overdue'
-                  ) : 'N/A'}
+              <div className="border border-border p-6">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Days Remaining</p>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
+                <h3 className="font-mono text-3xl font-semibold tabular-nums text-foreground">
+                  {daysUntilDue !== null ? (daysUntilDue >= 0 ? daysUntilDue : 'Overdue') : 'N/A'}
+                </h3>
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                   {daysUntilDue !== null && daysUntilDue >= 0 ? 'Until deadline' : 'No deadline set'}
                 </p>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Team Members</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex -space-x-2">
-                    <div 
-                      className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 border-2 border-background flex items-center justify-center text-white text-xs font-medium"
+              <div className="border border-border p-6">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Team Members</p>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-1">
+                    <div
+                      className="flex h-7 w-7 items-center justify-center border border-foreground bg-foreground font-mono text-[10px] font-bold text-background"
                       title="Admin"
                     >
                       A
                     </div>
-                    <div 
-                      className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 border-2 border-background flex items-center justify-center text-white text-xs font-medium"
+                    <div
+                      className="flex h-7 w-7 items-center justify-center border border-border bg-background font-mono text-[10px] font-bold text-foreground"
                       title="Client"
                     >
                       C
                     </div>
                   </div>
-                  <span className="text-sm text-muted-foreground">2 members</span>
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">2 members</span>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <CardTitle>Project Description</CardTitle>
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+              <div className="space-y-3 lg:col-span-2">
+
+                {/* Description */}
+                <div className="border border-border p-8">
+                  <div className="mb-1 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="font-mono text-sm font-bold uppercase tracking-wider text-foreground">Project Description</h2>
                   </div>
-                  <CardDescription>Overview and objectives of this project</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  <p className="mb-4 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Overview and objectives of this project
+                  </p>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
                     {project.description || "No description provided for this project."}
                   </p>
-                </CardContent>
-              </Card>
+                </div>
 
-              {/* Tasks Section */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <ListTodo className="h-5 w-5 text-primary" />
-                      <CardTitle>Project Tasks</CardTitle>
-                    </div>
+                {/* Tasks */}
+                <div className="border border-border p-8">
+                  <div className="mb-1 flex items-center gap-2">
+                    <ListTodo className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="font-mono text-sm font-bold uppercase tracking-wider text-foreground">Project Tasks</h2>
                   </div>
-                  <CardDescription>Tasks related to this project</CardDescription>
-                </CardHeader>
-                <CardContent>
+                  <p className="mb-4 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Tasks related to this project
+                  </p>
+
                   {tasks.length === 0 ? (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <ListTodo className="w-12 h-12 opacity-30 mx-auto mb-3" />
-                      <p className="text-sm">No tasks yet</p>
+                    <div className="py-12 text-center">
+                      <ListTodo className="mx-auto mb-3 h-10 w-10 text-muted-foreground opacity-30" />
+                      <p className="text-sm text-muted-foreground">No tasks yet</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {/* To Do */}
-                      {todoTasks.length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                            To Do ({todoTasks.length})
+                    <div className="space-y-6">
+                      {taskGroups.map(group => group.items.length > 0 && (
+                        <div key={group.label} className="space-y-2">
+                          <h4 className="font-mono text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            {group.label} ({group.items.length})
                           </h4>
                           <div className="space-y-2">
-                            {todoTasks.map((task) => (
+                            {group.items.map((task) => (
                               <div
                                 key={task.id}
                                 onClick={() => handleViewTask(task)}
-                                className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border border-border/50"
+                                className="flex cursor-pointer items-center justify-between gap-3 border border-border p-3 transition-colors hover:bg-accent"
                               >
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="flex-1">
-                                    <p className="font-medium text-sm">{task.title}</p>
-                                    {task.due_date && (
-                                      <p className="text-xs text-muted-foreground mt-1">
-                                        Due: {formatDate(task.due_date)}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <Badge variant="outline" className={taskStatusColor(task.status)}>
-                                    To Do {/* Change to "In Progress" or "Done" for other sections */}
-                                  </Badge>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditTask(task);
-                                    }} 
-                                    className="gap-2"
-                                  >
-                                    <PenBox size={14} />
-                                    Edit
-                                  </Button>
+                                <div className="flex-1">
+                                  <p className="text-sm font-semibold text-foreground">{task.title}</p>
+                                  {task.due_date && (
+                                    <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                                      Due {formatDate(task.due_date)}
+                                    </p>
+                                  )}
                                 </div>
+                                <Badge variant={getStatusVariant(task.status)} className="rounded-none font-mono text-[9px] uppercase">
+                                  {group.label}
+                                </Badge>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditTask(task);
+                                  }}
+                                  className="gap-2 rounded-none border-border font-mono text-[10px] uppercase"
+                                >
+                                  <PenBox size={14} />
+                                  Edit
+                                </Button>
                               </div>
                             ))}
                           </div>
                         </div>
-                      )}
-
-                      {/* In Progress */}
-                      {inProgressTasks.length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                            In Progress ({inProgressTasks.length})
-                          </h4>
-                          <div className="space-y-2">
-                            {inProgressTasks.map((task) => (
-                              <div
-                                key={task.id}
-                                onClick={() => handleViewTask(task)}
-                                className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border border-border/50"
-                              >
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="flex-1">
-                                    <p className="font-medium text-sm">{task.title}</p>
-                                    {task.due_date && (
-                                      <p className="text-xs text-muted-foreground mt-1">
-                                        Due: {formatDate(task.due_date)}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <Badge variant="outline" className={taskStatusColor(task.status)}>
-                                    In Progress {/* Change to "In Progress" or "Done" for other sections */}
-                                  </Badge>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditTask(task);
-                                    }} 
-                                    className="gap-2"
-                                  >
-                                    <PenBox size={14} />
-                                    Edit
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Done */}
-                      {doneTasks.length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                            Done ({doneTasks.length})
-                          </h4>
-                          <div className="space-y-2">
-                            {doneTasks.map((task) => (
-                           <div
-                                key={task.id}
-                                onClick={() => handleViewTask(task)}
-                                className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer border border-border/50"
-                              >
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="flex-1">
-                                    <p className="font-medium text-sm">{task.title}</p>
-                                    {task.due_date && (
-                                      <p className="text-xs text-muted-foreground mt-1">
-                                        Due: {formatDate(task.due_date)}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <Badge variant="outline" className={taskStatusColor(task.status)}>
-                                    Done {/* Change to "In Progress" or "Done" for other sections */}
-                                  </Badge>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEditTask(task);
-                                    }} 
-                                    className="gap-2"
-                                  >
-                                    <PenBox size={14} />
-                                    Edit
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
 
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    <CardTitle>Project Timeline</CardTitle>
+                {/* Timeline */}
+                <div className="border border-border p-8">
+                  <div className="mb-1 flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="font-mono text-sm font-bold uppercase tracking-wider text-foreground">Project Timeline</h2>
                   </div>
-                  <CardDescription>Start and end dates for this project</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2 p-4 bg-muted/30 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                        Start Date
-                      </div>
-                      <p className="text-lg font-semibold">{formatDate(project.start_date)}</p>
+                  <p className="mb-4 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Start and end dates for this project
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="border border-border p-4">
+                      <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Start Date</p>
+                      <p className="text-lg font-semibold text-foreground">{formatDate(project.start_date)}</p>
                     </div>
-                    <div className="space-y-2 p-4 bg-muted/30 rounded-lg">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <div className="h-2 w-2 rounded-full bg-red-500" />
-                        Due Date
-                      </div>
-                      <p className="text-lg font-semibold">{formatDate(project.due_date)}</p>
+                    <div className="border border-border p-4">
+                      <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Due Date</p>
+                      <p className="text-lg font-semibold text-foreground">{formatDate(project.due_date)}</p>
                       {daysUntilDue !== null && daysUntilDue < 7 && daysUntilDue >= 0 && (
-                        <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-xs">
-                          <AlertCircle className="h-3 w-3 mr-1" />
+                        <Badge variant="default" className="mt-2 gap-1 rounded-none font-mono text-[9px] uppercase">
+                          <AlertCircle className="h-3 w-3" />
                           Due soon
                         </Badge>
                       )}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
 
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    <CardTitle>Project Files</CardTitle>
+                {/* Files */}
+                <div className="border border-border p-8">
+                  <div className="mb-1 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="font-mono text-sm font-bold uppercase tracking-wider text-foreground">Project Files</h2>
                   </div>
-                  <CardDescription>Attached documents and resources</CardDescription>
-                </CardHeader>
-                <CardContent>
+                  <p className="mb-4 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Attached documents and resources
+                  </p>
+
                   {project.file ? (
                     project.file.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                      <div className="space-y-3">
-                        <div className="relative group">
-                          <img
-                            src={`/storage/${project.file}`}
-                            alt="Project File"
-                            className="rounded-lg border border-border max-h-96 w-full object-contain bg-muted/30"
-                          />
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                            <a
-                              href={`/storage/${project.file}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                            >
-                              <Image className="h-4 w-4" />
-                              View full image
-                            </a>
-                          </div>
+                      <div className="group relative border border-border">
+                        <img
+                          src={`/storage/${project.file}`}
+                          alt="Project File"
+                          className="max-h-96 w-full bg-muted object-contain"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-foreground/70 opacity-0 transition-opacity group-hover:opacity-100">
+                          <a
+                            href={`/storage/${project.file}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 border border-background bg-background px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-foreground hover:bg-background/90"
+                          >
+                            <Image className="h-4 w-4" />
+                            View full image
+                          </a>
                         </div>
                       </div>
                     ) : (
@@ -552,180 +421,166 @@ export default function ProjectShow({ project, tasks = [] }: Props) {
                         href={`/storage/${project.file}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors group"
+                        className="flex items-center gap-3 border border-border p-4 transition-colors hover:bg-accent"
                       >
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          <Download className="h-5 w-5 text-primary" />
-                        </div>
+                        <Download className="h-5 w-5 text-muted-foreground" />
                         <div className="flex-1">
-                          <p className="font-medium text-sm group-hover:text-primary transition-colors">
-                            Download file
-                          </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-sm font-semibold text-foreground">Download file</p>
+                          <p className="font-mono text-[10px] text-muted-foreground">
                             {project.file.split('/').pop()}
                           </p>
                         </div>
                       </a>
                     )
                   ) : (
-                    <div className="text-center py-12 text-muted-foreground">
-                      <FileText className="w-12 h-12 opacity-30 mx-auto mb-3" />
-                      <p className="text-sm">No file uploaded</p>
+                    <div className="py-12 text-center">
+                      <FileText className="mx-auto mb-3 h-10 w-10 text-muted-foreground opacity-30" />
+                      <p className="text-sm text-muted-foreground">No file uploaded</p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
 
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-primary" />
-                    <CardTitle>Activity History</CardTitle>
+                {/* Activity */}
+                <div className="border border-border p-8">
+                  <div className="mb-1 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="font-mono text-sm font-bold uppercase tracking-wider text-foreground">Activity History</h2>
                   </div>
-                  <CardDescription>Key timestamps for this project</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">Project Created</p>
-                      <p className="text-xs text-muted-foreground">Initial project setup</p>
-                    </div>
-                    <p className="text-sm font-semibold">{formatDate(project.created_at)}</p>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">Last Updated</p>
-                      <p className="text-xs text-muted-foreground">Most recent modification</p>
-                    </div>
-                    <p className="text-sm font-semibold">{formatDate(project.updated_at)}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-6">
-              <Card className="bg-muted/30">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Info className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-lg">Project Status</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                  <p className="mb-4 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Key timestamps for this project
+                  </p>
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Current Status</p>
-                    <Badge variant="outline" className={`${statusColor(project.status)} text-sm py-1.5 px-3 w-full justify-center`}>
-                      {formatStatus(project.status)}
-                    </Badge>
-                  </div>
-                  <Separator />
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Priority Level</p>
-                    <Badge variant="outline" className={`${priorityColor(project.priority)} text-sm py-1.5 px-3 w-full justify-center`}>
-                      {project.priority.toUpperCase()}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-muted/30">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Tag className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-lg">Quick Info</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between text-sm p-2 bg-background/50 rounded">
-                    <span className="text-muted-foreground">Project ID</span>
-                    <span className="font-mono font-semibold">#{project.id}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm p-2 bg-background/50 rounded">
-                    <span className="text-muted-foreground">Client Key</span>
-                    <span className="font-mono text-xs">{project.client_key_id || "N/A"}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between text-sm p-2 bg-background/50 rounded">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-semibold">{project.progress || 0}%</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-primary/20 bg-primary/5">
-                <CardContent className="pt-6">
-                  <div className="space-y-3 text-center">
-                    <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <TrendingUp className="h-6 w-6 text-primary" />
+                    <div className="flex items-center justify-between border border-border p-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Project Created</p>
+                        <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Initial project setup</p>
+                      </div>
+                      <p className="font-mono text-sm font-semibold text-foreground">{formatDate(project.created_at)}</p>
                     </div>
-                    <div className="space-y-1">
-                      <p className="font-medium text-sm">Need Assistance?</p>
-                      <p className="text-xs text-muted-foreground">
-                        Contact your project administrator for updates or support
-                      </p>
+                    <div className="flex items-center justify-between border border-border p-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Last Updated</p>
+                        <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Most recent modification</p>
+                      </div>
+                      <p className="font-mono text-sm font-semibold text-foreground">{formatDate(project.updated_at)}</p>
                     </div>
-                    <Button variant="outline" size="sm" className="w-full mt-2">
-                      Contact Support
-                    </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+
+              {/* Sidebar */}
+              <div className="space-y-3">
+                <div className="border border-border p-6">
+                  <div className="mb-4 flex items-center gap-2">
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="font-mono text-[11px] font-bold uppercase tracking-wider text-foreground">Project Status</h2>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Current Status</p>
+                      <Badge variant={getStatusVariant(project.status)} className="w-full justify-center rounded-none py-1.5 font-mono text-xs uppercase">
+                        {formatStatus(project.status)}
+                      </Badge>
+                    </div>
+                    <div className="border-t border-border pt-4">
+                      <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Priority Level</p>
+                      <Badge variant={getPriorityVariant(project.priority)} className="w-full justify-center rounded-none py-1.5 font-mono text-xs uppercase">
+                        {project.priority}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border border-border p-6">
+                  <div className="mb-4 flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="font-mono text-[11px] font-bold uppercase tracking-wider text-foreground">Quick Info</h2>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border border-border p-2.5 font-mono text-xs">
+                      <span className="uppercase tracking-wider text-muted-foreground">Project ID</span>
+                      <span className="font-semibold text-foreground">#{project.id}</span>
+                    </div>
+                    <div className="flex items-center justify-between border border-border p-2.5 font-mono text-xs">
+                      <span className="uppercase tracking-wider text-muted-foreground">Client Key</span>
+                      <span className="text-foreground">{project.client_key_id || "N/A"}</span>
+                    </div>
+                    <div className="flex items-center justify-between border border-border p-2.5 font-mono text-xs">
+                      <span className="uppercase tracking-wider text-muted-foreground">Progress</span>
+                      <span className="font-semibold text-foreground">{project.progress || 0}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border border-border bg-foreground p-6 text-center text-background">
+                  <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center border border-background/30">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
+                  <p className="mb-1 text-sm font-semibold">Need Assistance?</p>
+                  <p className="mb-4 font-mono text-[10px] uppercase tracking-wider text-background/60">
+                    Contact your project administrator for updates or support
+                  </p>
+                  <Button variant="outline" size="sm" className="w-full rounded-none border-background/30 bg-transparent font-mono text-xs uppercase tracking-wider text-background hover:bg-background/10 hover:text-background">
+                    Contact Support
+                  </Button>
+                </div>
+              </div>
             </div>
+          </main>
+
+          {/* Task Sidebar - Fixed position, slides in from right */}
+          <div
+            className={`fixed right-0 top-0 z-[100] h-full w-96 transform transition-transform duration-300 ease-linear ${
+              taskSidebarOpen ? "translate-x-0" : "translate-x-full"
+            }`}
+          >
+            <TaskSidebar
+              isOpen={taskSidebarOpen}
+              task={selectedTask}
+              mode={sidebarMode}
+              isLoading={false}
+              onClose={closeSidebar}
+              onSave={() => {}}
+              userRole="client"
+              isAdmin={true}
+              clientKey={project.client_key_id}
+              routePrefix="/client"
+              projectDueDate={project.due_date}
+              onDueDateError={() => setShowDueDateAlert(true)}
+              onDelete={handleTaskDelete}
+            />
           </div>
         </div>
-        </div>
+      </SidebarInset>
 
-        {/* Task Sidebar - Fixed position, slides in from right */}
-         <div
-          className={`fixed right-0 top-0 h-full w-96 transform transition-transform duration-300 ease-linear z-[100] ${
-            taskSidebarOpen ? "translate-x-0" : "translate-x-full"
-          }`}
-        >
-         <TaskSidebar
-          isOpen={taskSidebarOpen}
-          task={selectedTask}
-          mode={sidebarMode}
-          isLoading={false}
-          onClose={closeSidebar}
-          onSave={() => {}}
-          userRole="client"
-          isAdmin={true}
-          clientKey={project.client_key_id}
-          routePrefix="/client"
-          projectDueDate={project.due_date}
-          onDueDateError={() => setShowDueDateAlert(true)}
-          onDelete={handleTaskDelete}
-        />
-        </div>
-     </SidebarInset>
-         {/* Backdrop Overlay */}
-    {showDueDateAlert && (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[199]" />
-    )}
+      {/* Backdrop Overlay */}
+      {showDueDateAlert && (
+        <div className="fixed inset-0 z-[199] bg-black/60 backdrop-blur-sm" />
+      )}
 
-    {/* Alert Dialog */}
-    <AlertDialog open={showDueDateAlert} onOpenChange={setShowDueDateAlert}>
-      <AlertDialogContent className="z-[200]">
-        <AlertDialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
+      {/* Alert Dialog */}
+      <AlertDialog open={showDueDateAlert} onOpenChange={setShowDueDateAlert}>
+        <AlertDialogContent className="z-[200] rounded-none border-border">
+          <AlertDialogHeader>
+            <div className="mb-2 flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center border border-border">
+                <AlertTriangle className="h-4 w-4 text-foreground" />
+              </div>
+              <AlertDialogTitle className="text-lg font-semibold">
+                Invalid Due Date
+              </AlertDialogTitle>
             </div>
-            <AlertDialogTitle className="text-lg font-semibold">
-              Invalid Due Date
-            </AlertDialogTitle>
-          </div>
-          <AlertDialogDescription className="text-sm text-muted-foreground">
-            The task due date cannot be later than the project due date ({formatDate(project.due_date)}). Please select a valid due date.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogAction onClick={() => setShowDueDateAlert(false)}>
-            OK
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-   </AppShell>
+            <AlertDialogDescription className="text-sm text-muted-foreground">
+              The task due date cannot be later than the project due date ({formatDate(project.due_date)}). Please select a valid due date.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowDueDateAlert(false)} className="rounded-none">
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </AppShell>
   )
 }
