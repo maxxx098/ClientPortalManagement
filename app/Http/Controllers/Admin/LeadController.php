@@ -8,6 +8,7 @@ use App\Models\Lead;
 use App\Models\OnboardingSession;
 use App\Models\OnboardingStep;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -15,6 +16,12 @@ class LeadController extends Controller
 {
     public function index()
     {
+        if (! Schema::hasTable('leads')) {
+            return Inertia::render('admin/leads/index', [
+                'leads' => [],
+            ]);
+        }
+
         $leads = Lead::latest()->get();
 
         return Inertia::render('admin/leads/index', [
