@@ -1,60 +1,37 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from '@inertiajs/react';
-import { 
-  FolderKanban, 
-  CheckSquare, 
-  Calendar,
-  ArrowUpRight,
-  Activity,
-  Clock,
-  AlertCircle,
-  CheckCircle2,
+import {
   Plus,
-  Bell,
   Search,
-  Download,
-  Sparkles,
-  TrendingUp,
-  ChevronLeft,
-  ChevronRight,
   Filter,
   ExternalLink,
   MessageSquare,
+  ArrowUpRight,
   ArrowDownRight,
-  ArrowDown,
-  ArrowDown01Icon,
-  ChevronDown,
-  AlarmCheck,
+  ChevronLeft,
+  ChevronRight,
   AlarmClock,
-  ArrowRight
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from 'recharts';
 import AppLayout from '@/layouts/app-layout';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 interface Stats {
-  clients: {
-    total: number;
-    active: number;
-    inactive: number;
-  };
-  projects: {
-    total: number;
-    active: number;
-    completed: number;
-    on_hold: number;
-  };
-  tasks: {
-    total: number;
-    pending: number;
-    in_progress: number;
-    completed: number;
-    overdue: number;
-  };
-  users: {
-    total: number;
-    admins: number;
-    staff: number;
-  };
+  clients: { total: number; active: number; inactive: number };
+  projects: { total: number; active: number; completed: number; on_hold: number };
+  tasks: { total: number; pending: number; in_progress: number; completed: number; overdue: number };
+  users: { total: number; admins: number; staff: number };
 }
 
 interface Client {
@@ -74,11 +51,7 @@ interface Project {
   name: string;
   status: string;
   priority: string;
-  client_key?: {
-    id: number;
-    key: string;
-    name: string;
-  };
+  client_key?: { id: number; key: string; name: string };
   due_date?: string;
   start_date?: string;
   progress?: number;
@@ -91,15 +64,8 @@ interface Task {
   title: string;
   status: string;
   priority: string;
-  client_key?: {
-    id: number;
-    key: string;
-    name: string;
-  };
-  project?: {
-    id: number;
-    name: string;
-  };
+  client_key?: { id: number; key: string; name: string };
+  project?: { id: number; name: string };
   due_date?: string;
   created_at: string;
 }
@@ -123,73 +89,35 @@ interface Props {
   tasksByStatus: Record<string, number>;
 }
 
-export default function Index({ 
-  stats, 
-  recentClients,
-  recentProjects, 
-  recentTasks,
-  overdueTasks,
-  recentActivity,
-  projectsByStatus,
-  tasksByStatus 
-}: Props) {
-
+export default function Index({ stats, recentClients, recentProjects, recentTasks }: Props) {
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  // Generate weekly data based on actual stats
-  const generateWeeklyData = () => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const totalTasks = stats.tasks.total;
-    const avgPerDay = Math.ceil(totalTasks / 7);
-    
-    return days.map((day, index) => {
-      const variance = Math.random() * 0.4 + 0.8;
-      const success = Math.max(1, Math.floor(avgPerDay * variance));
-      const failed = Math.floor(success * (Math.random() * 0.3 + 0.2));
-      
-      return { name: day, success, failed };
+  const generateMonthlyData = () => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const totalTasks = stats.tasks.total || 100;
+    const avgPerMonth = Math.max(5, Math.ceil(totalTasks / 12));
+    return months.map((month, index) => {
+      const successWave = Math.sin(index * 0.6) * 0.6 + Math.random() * 0.3 + 0.7;
+      const success = Math.max(3, Math.floor(avgPerMonth * successWave));
+      const failedWave = Math.sin(index * 0.6 + 0.5) * 0.5 + Math.random() * 0.4 + 0.5;
+      const failed = Math.max(2, Math.floor(avgPerMonth * failedWave * 0.7));
+      return { name: month, success, failed };
     });
   };
+  const [monthlyData] = useState(generateMonthlyData());
+  const lastMonth = monthlyData[monthlyData.length - 1];
+  const prevMonth = monthlyData[monthlyData.length - 2];
+  const monthlyTrend = prevMonth
+    ? (((lastMonth.success - prevMonth.success) / prevMonth.success) * 100).toFixed(1)
+    : '0';
 
-  const [weeklyData] = useState(generateWeeklyData());
-
-  const taskCompletionRate = stats.tasks.total > 0 
-    ? Math.round((stats.tasks.completed / stats.tasks.total) * 100)
-    : 0;
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      active: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-      inactive: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-      planned: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      in_progress: 'bg-green-500/20 text-green-400 border-green-500/30',
-      on_hold: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-      completed: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-      todo: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
-      done: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-      pending: 'bg-green-500/20 text-green-400 border-green-500/30',
-      overdue: 'bg-red-500/20 text-red-400 border-red-500/30',
-    };
-    return colors[status] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-  };
-
-  const getPriorityColor = (priority: string) => {
-    const colors: Record<string, string> = {
-      low: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      medium: 'bg-green-500/20 text-green-400 border-green-500/30',
-      high: 'bg-red-500/20 text-red-400 border-red-500/30',
-    };
-    return colors[priority] || 'bg-gray-500/20 text-gray-400 border-gray-500/30';
-  };
+  const taskCompletionRate =
+    stats.tasks.total > 0 ? Math.round((stats.tasks.completed / stats.tasks.total) * 100) : 0;
 
   const formatDate = (date?: string) => {
     if (!date) return 'No date';
-    return new Date(date).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
+    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const formatRelativeTime = (date?: string) => {
@@ -200,17 +128,16 @@ export default function Index({
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     return `${diffDays}d ago`;
   };
 
-  const currentDate = new Date().toLocaleDateString('en-US', { 
+  const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-    year: 'numeric' 
+    year: 'numeric',
   });
 
   useEffect(() => {
@@ -219,494 +146,337 @@ export default function Index({
         setShowNotifications(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Credit Score Gauge Component
-const CreditScoreGauge = () => {
-  // Gauge configuration
-  const center = 100;
-  const radius = 80;
-  const strokeWidth = 10;
-  
-  // Helper to calculate arc path
-  const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
-    const start = polarToCartesian(x, y, radius, endAngle);
-    const end = polarToCartesian(x, y, radius, startAngle);
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-    return [
-      "M", start.x, start.y, 
-      "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
-    ].join(" ");
-  };
-
-  const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
-    const angleInRadians = (angleInDegrees - 180) * Math.PI / 180.0;
-    return {
-      x: centerX + (radius * Math.cos(angleInRadians)),
-      y: centerY + (radius * Math.sin(angleInRadians))
-    };
-  };
-
-  // Generate tick dots
-  const ticks = [];
-  for (let i = 0; i <= 20; i++) {
-    const angle = (i / 20) * 180;
-    const pos = polarToCartesian(center, center + 30, radius - 15, angle);
-    ticks.push(<circle key={i} cx={pos.x} cy={pos.y} r="0.5" fill="white" />);
-  }
-
-  // Calculate marker position based on completion rate
-  const markerAngle = (taskCompletionRate / 100) * 180;
-  const thumbPos = polarToCartesian(center, center + 30, radius, markerAngle);
-
-  return (
-    <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 p-5 rounded-3xl flex flex-col items-center h-full">
-      <h3 className="text-[11px] font-medium text-gray-500 self-start mb-6 uppercase tracking-widest">Performance Score</h3>
-      
-      <div className="w-full aspect-[4/3] relative flex items-center justify-center -mt-4">
-        <svg viewBox="0 0 200 150" className="w-full h-full">
-          {/* Inner dots pattern */}
-          {ticks}
-          
-          {/* Segment 1: Gold (Left) */}
-          <path
-            d={describeArc(center, center + 30, radius, 0, 54)}
-            fill="none"
-            stroke="red"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-          />
-          
-          {/* Segment 2: Purple (Middle) */}
-          <path
-            d={describeArc(center, center + 30, radius, 66, 114)}
-            fill="none"
-            stroke="white"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-          />
-          
-          {/* Segment 3: Blue (Right) */}
-          <path
-            d={describeArc(center, center + 30, radius, 126, 180)}
-            fill="none"
-            stroke="green"
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-          />
-
-        </svg>
-        
-        <div className="absolute top-[62%] left-1/2 -translate-x-1/2 text-center">
-          <span className="text-6xl font-semibold text-white tracking-tighter">{taskCompletionRate}%</span>
-        </div>
+  // ---------- Ledger row stat (replaces bubble stat cards) ----------
+  const LedgerStat = ({
+    index,
+    label,
+    value,
+    trend,
+    isNegative,
+  }: {
+    index: string;
+    label: string;
+    value: number;
+    trend: number;
+    isNegative: boolean;
+  }) => (
+    <div className="flex items-baseline justify-between border-b border-border py-5 first:pt-0 last:border-b-0">
+      <div className="flex items-baseline gap-4">
+        <span className="font-mono text-[11px] text-muted-foreground">{index}</span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">{label}</span>
       </div>
-
-      <div className="grid grid-cols-3 gap-4 w-full mt-2">
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-1.5 mb-1.5">
-            <div className="w-1 h-3 rounded-full bg-white"></div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Productivity</p>
-          </div>
-          <p className="text-xs font-bold">{stats.tasks.completed}</p>
-        </div>
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-1.5 mb-1.5">
-            <div className="w-1 h-3 rounded-full bg-white"></div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Punctuality</p>
-          </div>
-          <p className="text-xs font-bold">{stats.tasks.in_progress}</p>
-        </div>
-        <div className="text-center">
-          <div className="flex items-center justify-center gap-1.5 mb-1.5">
-            <div className="w-1 h-3 rounded-full bg-white"></div>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Creativity</p>
-          </div>
-          <p className="text-xs font-bold">{stats.tasks.pending}</p>
-        </div>
+      <div className="flex items-baseline gap-4">
+        <span
+          className={`flex items-center gap-1 font-mono text-[11px] ${
+            isNegative ? 'text-muted-foreground' : 'text-foreground'
+          }`}
+        >
+          {isNegative ? <ArrowDownRight size={11} /> : <ArrowUpRight size={11} />}
+          {trend}%
+        </span>
+        <span className="font-mono text-2xl font-semibold tabular-nums text-foreground">
+          {String(value).padStart(2, '0')}
+        </span>
       </div>
-
-      <button className="mt-10 px-10 py-2 rounded-full bg-white/[0.03] border border-white/[0.04] text-[13px] font-bold text-gray-300 flex items-center justify-center gap-3 hover:bg-white/[0.07] transition-all group">
-        <div className="relative flex items-center justify-center">
-          {/* Spinning Dots Circle */}
-          <div className="w-3 h-3 relative animate-spin-slow">
-            {[...Array(8)].map((_, i) => (
-              <div 
-                key={i} 
-                className="absolute w-[1px] h-[2px] bg-gray-400 rounded-full" 
-                style={{ 
-                  top: '50%', 
-                  left: '50%', 
-                  transform: `rotate(${i * 45}deg) translate(0, -8px)`,
-                  opacity: 0.3 + (i * 0.09)
-                }}
-              />
-            ))}
-          </div>
-          {/* Center Dot */}
-        
-        </div>
-        {taskCompletionRate >= 75 ? 'Excellent Performance' : taskCompletionRate >= 50 ? 'Good Progress' : 'Keep Going'}
-      </button>
-
-      <style>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 4s linear infinite;
-        }
-      `}</style>
     </div>
   );
-};
 
-  // Work Progress Chart Component
-const WorkProgressChart = () => {
-  // Generate monthly data based on actual stats
-  const generateMonthlyData = () => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const totalTasks = stats.tasks.total || 100;
-    const avgPerMonth = Math.max(5, Math.ceil(totalTasks / 12));
-    
-    return months.map((month, index) => {
-      // Create wave-like pattern for success (violet) - dramatic variation
-      const successWave = Math.sin(index * 0.6) * 0.6 + Math.random() * 0.3 + 0.7;
-      const success = Math.max(3, Math.floor(avgPerMonth * successWave));
-      
-      // Create similar but slightly offset wave for failed (orange) - can overlap
-      const failedWave = Math.sin(index * 0.6 + 0.5) * 0.5 + Math.random() * 0.4 + 0.5;
-      const failed = Math.max(2, Math.floor(avgPerMonth * failedWave * 0.7));
-      
-      return { 
-        name: month, 
-        success, 
-        failed,
-        total: success + failed 
-      };
-    });
+  // ---------- Tick-mark ruler meter (signature element, replaces circular gauge) ----------
+  const RulerMeter = () => {
+    const totalTicks = 40;
+    const filledTicks = Math.round((taskCompletionRate / 100) * totalTicks);
+
+    return (
+      <div className="flex h-full flex-col border border-border p-6">
+        <div className="mb-8 flex items-baseline justify-between">
+          <h3 className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+            Completion Rate
+          </h3>
+          <span className="font-mono text-4xl font-semibold tabular-nums text-foreground">
+            {taskCompletionRate}
+            <span className="text-base text-muted-foreground">%</span>
+          </span>
+        </div>
+
+        <div className="flex flex-1 flex-col justify-center">
+          <div className="flex h-16 items-end gap-[3px]">
+            {Array.from({ length: totalTicks }).map((_, i) => {
+              const filled = i < filledTicks;
+              const major = i % 5 === 0;
+              return (
+                <div
+                  key={i}
+                  className={`flex-1 ${major ? 'h-full' : 'h-2/3'} ${filled ? 'bg-foreground' : 'bg-border'}`}
+                />
+              );
+            })}
+          </div>
+          <div className="mt-2 flex justify-between font-mono text-[10px] text-muted-foreground">
+            <span>0</span>
+            <span>25</span>
+            <span>50</span>
+            <span>75</span>
+            <span>100</span>
+          </div>
+        </div>
+
+        <Separator className="my-6 bg-border" />
+
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: 'Done', value: stats.tasks.completed },
+            { label: 'Active', value: stats.tasks.in_progress },
+            { label: 'Queued', value: stats.tasks.pending },
+          ].map((item) => (
+            <div key={item.label}>
+              <p className="mb-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                {item.label}
+              </p>
+              <p className="font-mono text-lg font-semibold tabular-nums text-foreground">{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
-  const [monthlyData] = useState(generateMonthlyData());
-
-  // Calculate trend
-  const lastMonth = monthlyData[monthlyData.length - 1];
-  const prevMonth = monthlyData[monthlyData.length - 2];
-  const trend = prevMonth ? ((lastMonth.success - prevMonth.success) / prevMonth.success * 100).toFixed(1) : 0;
-
-  return (
-    <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 p-6 rounded-3xl h-full flex flex-col">
-      <div className="flex justify-between items-start mb-6">
+  // ---------- Trend chart (kept, restyled flat) ----------
+  const TrendChart = () => (
+    <div className="flex h-full flex-col border border-border p-6">
+      <div className="mb-6 flex items-start justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-gray-200 mb-1">Work Progress Overview</h3>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-2xl font-bold text-white">{lastMonth.success}</span>
-            <span className={`text-xs px-2 py-1 rounded-full ${Number(trend) >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>
-              {Number(trend) >= 0 ? '+' : ''}{trend}%
+          <h3 className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+            Monthly Throughput
+          </h3>
+          <div className="mt-2 flex items-baseline gap-3">
+            <span className="font-mono text-3xl font-semibold tabular-nums text-foreground">
+              {lastMonth.success}
+            </span>
+            <span
+              className={`flex items-center gap-1 font-mono text-[11px] ${
+                Number(monthlyTrend) >= 0 ? 'text-foreground' : 'text-muted-foreground'
+              }`}
+            >
+              {Number(monthlyTrend) >= 0 ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+              {Number(monthlyTrend) >= 0 ? '+' : ''}
+              {monthlyTrend}%
             </span>
           </div>
         </div>
-        <div className="flex gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-white"></div>
-            <span className="text-[10px] text-gray-400">Post Success</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-red-700"></div>
-            <span className="text-[10px] text-gray-400">Post Failed</span>
-          </div>
+        <div className="flex flex-col items-end gap-2 font-mono text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-2">
+            <span className="h-[2px] w-3 bg-foreground" /> completed
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="h-[2px] w-3 border-t border-dashed border-muted-foreground" /> failed
+          </span>
         </div>
       </div>
-      
-      <div className="flex-1 min-h-[250px]">
+
+      <div className="min-h-[220px] flex-1">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={monthlyData}>
-            <defs>
-              <linearGradient id="successGlow" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.4}/>
-                <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0}/>
-              </linearGradient>
-              <linearGradient id="failedGlow" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#fb923c" stopOpacity={0.4}/>
-                <stop offset="100%" stopColor="#fb923c" stopOpacity={0}/>
-              </linearGradient>
-              <filter id="glow">
-                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                <feMerge>
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-            </defs>
-            <CartesianGrid 
-              vertical={false} 
-              stroke="#1f2937" 
-              strokeDasharray="3 3" 
-              strokeOpacity={0.3}
+          <LineChart data={monthlyData} margin={{ left: -20 }}>
+            <CartesianGrid vertical={false} stroke="hsl(var(--border))" strokeDasharray="2 4" />
+            <XAxis
+              dataKey="name"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10, fontFamily: 'monospace' }}
+              dy={8}
             />
-            <XAxis 
-              dataKey="name" 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fill: '#6b7280', fontSize: 11 }}
-              dy={10}
-            />
-            <YAxis 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fill: '#6b7280', fontSize: 11 }}
-              dx={-10}
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10, fontFamily: 'monospace' }}
               domain={[0, 'auto']}
-              allowDataOverflow={false}
             />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#0a0a0a', 
-                border: '1px solid rgba(139, 92, 246, 0.3)', 
-                borderRadius: '12px', 
-                fontSize: '12px',
-                boxShadow: '0 0 20px rgba(139, 92, 246, 0.2)'
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'hsl(var(--popover))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: 0,
+                fontSize: '11px',
+                fontFamily: 'monospace',
+                color: 'hsl(var(--popover-foreground))',
               }}
-              itemStyle={{ color: '#fff' }}
-              cursor={{ stroke: '#8b5cf6', strokeWidth: 1, strokeDasharray: '5 5' }}
+              cursor={{ stroke: 'hsl(var(--foreground))', strokeWidth: 1, strokeDasharray: '3 3' }}
             />
-            {/* Success Line with Glow */}
-            <Line 
-              type="monotone" 
-              dataKey="success" 
-              stroke="red" 
-              strokeWidth={2.5}
-              dot={{ 
-                fill: 'red', 
-                strokeWidth: 2, 
-                r: 3.5,
-                stroke: '#0a0a0a'
-              }}
-              activeDot={{ 
-                r: 6, 
-                fill: '#8b5cf6',
-                stroke: '#0a0a0a',
-                strokeWidth: 2,
-                filter: 'url(#glow)'
-              }}
-              isAnimationActive={true}
+            <Line
+              type="linear"
+              dataKey="success"
+              stroke="hsl(var(--foreground))"
+              strokeWidth={1.5}
+              dot={false}
+              activeDot={{ r: 4, fill: 'hsl(var(--foreground))', stroke: 'hsl(var(--background))', strokeWidth: 1 }}
             />
-            {/* Failed Line with Glow */}
-            <Line 
-              type="monotone" 
-              dataKey="failed" 
-              stroke="white" 
-              strokeWidth={2.5}
-              dot={{ 
-                fill: 'white', 
-                strokeWidth: 2, 
-                r: 3.5,
-                stroke: '#0a0a0a'
-              }}
-              activeDot={{ 
-                r: 6, 
-                fill: '#fb923c',
-                stroke: '#0a0a0a',
-                strokeWidth: 2,
-                filter: 'url(#glow)'
-              }}
-              isAnimationActive={true}
+            <Line
+              type="linear"
+              dataKey="failed"
+              stroke="hsl(var(--muted-foreground))"
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              dot={false}
+              activeDot={{ r: 4, fill: 'hsl(var(--muted-foreground))', stroke: 'hsl(var(--background))', strokeWidth: 1 }}
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
     </div>
   );
-};
-  // Stat Card Component
-  const StatCard = ({ label, value, trend, isNegative, history }: any) => {
-    return (
-      <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 p-5 rounded-2xl flex flex-col justify-between h-45 hover:border-green-500/20 transition-all group">
-      <div className='mb-3'>
-        <p className="text-[15px] text-gray-500 font-medium mb-2 uppercase ">{label}</p>
-      </div>
-        <div className="flex justify-between items-start">
-          <div>
-            <h2 className="text-3xl font-bold text-white">{value}</h2>
-          </div>
-          <div className="w-24 h-12">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={history}>
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke={isNegative ? "#ef4444" : "#22c55e"} 
-                  strokeWidth={2} 
-                  dot={false} 
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        
-        <div className="flex justify-between items-center mt-4">
-          <div className={`flex items-center text-[15px] font-medium ${isNegative ? 'text-red-400 border border-accent bg-red-500/20 rounded-2xl px-2 py-1' : 'text-green-400 border-accent  bg-gradient-to-br from-emerald-500/20  border rounded-2xl px-2 py-1'}`}>
-            <span className="mr-1">{trend}%</span>
-            {isNegative ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
-          </div>
-          <div className="flex items-center text-[13px] text-gray-500 uppercase">
-            <span className='flex items-center gap-1'>This month <ChevronDown size={16} /></span>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Generate stat history data
-  const generateStatHistory = (baseValue: number) => {
-    return Array.from({ length: 7 }, (_, i) => ({
-      value: baseValue + Math.floor(Math.random() * 10) - 5
-    }));
-  };
 
   return (
     <AppLayout>
-      <div className="flex min-h-screen w-full overflow-hidden">
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col relative z-10 overflow-y-auto">
-          {/* Dashboard Content */}
-          <div className="pl-8 pr-3 mt-3 ">
-            {/* banner */}
-              <div className='border border-white/5 rounded-2xl relative overflow-hidden'>
-                <div className="w-full bg-gradient-to-r from-red-500 to-or600 p-8">
-
-                {/* Content */}
-                <div className="relative z-10 max-w-xl">
-                  <p className="mb-2 text-xs font-semibold tracking-widest text-white/80">
-                    ONLINE COURSE
-                  </p>
-
-                  <h1 className="mb-6 text-3xl font-bold leading-snug sm:text-4xl">
-                    Sharpen Your Skills with <br />
-                    Professional Online Courses
-                  </h1>
-
-                  <button className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-gray-100">
-                    Join Now
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-black">
-                      <ArrowRight size={14} />
-                    </span>
-                  </button>
-                </div>
+      <div className="flex min-h-screen w-full overflow-hidden bg-background font-sans">
+        <main className="relative z-10 flex flex-1 flex-col overflow-y-auto">
+          {/* Masthead — replaces the promo banner with an actual status line */}
+          <div className="border-b border-border pl-8 pr-3 pt-6 pb-6">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  {today}
+                </p>
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">Operations Overview</h1>
+              </div>
+              <div className="flex gap-8 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                <span>
+                  Clients&nbsp;
+                  <span className="text-foreground">{String(stats.clients.total).padStart(2, '0')}</span>
+                </span>
+                <span>
+                  Projects&nbsp;
+                  <span className="text-foreground">{String(stats.projects.total).padStart(2, '0')}</span>
+                </span>
+                <span>
+                  Overdue&nbsp;
+                  <span className="text-foreground">{String(stats.tasks.overdue).padStart(2, '0')}</span>
+                </span>
               </div>
             </div>
           </div>
-          <div className="pl-8 pr-3 pb-8 flex flex-col gap-3 mt-3">
-            {/* Top Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <StatCard 
-                label="Total Projects" 
-                value={stats.projects.total} 
-                trend={12} 
-                isNegative={false}
-                history={generateStatHistory(stats.projects.total)}
-              />
-              <StatCard 
-                label="Completed" 
-                value={stats.tasks.completed} 
-                trend={15} 
-                isNegative={false}
-                history={generateStatHistory(stats.tasks.completed)}
-              />
-              <StatCard 
-                label="Overdue" 
-                value={stats.tasks.overdue} 
-                trend={-5} 
-                isNegative={true}
-                history={generateStatHistory(stats.tasks.overdue)}
-              />
-            </div>
 
-            {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-              <div className="lg:col-span-2">
-                <WorkProgressChart />
+          <div className="flex flex-col gap-3 pl-8 pr-3 py-6">
+            {/* Stat ledger + charts */}
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+              <div className="border border-border p-6 lg:col-span-1">
+                <h3 className="mb-2 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                  This Month
+                </h3>
+                <LedgerStat index="01" label="Projects" value={stats.projects.total} trend={12} isNegative={false} />
+                <LedgerStat index="02" label="Completed" value={stats.tasks.completed} trend={15} isNegative={false} />
+                <LedgerStat index="03" label="Overdue" value={stats.tasks.overdue} trend={-5} isNegative={true} />
               </div>
               <div className="lg:col-span-1">
-                <CreditScoreGauge />
+                <RulerMeter />
+              </div>
+              <div className="lg:col-span-1">
+                <TrendChart />
               </div>
             </div>
 
-            {/* User Tracking Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Tracking rows */}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               {/* Status Tracker */}
-              <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 p-5 rounded-2xl">
-                <h3 className="text-xs font-semibold text-gray-400 uppercase mb-4 tracking-wider">Status Tracker</h3>
-                <div className="flex flex-col gap-4">
-                  {recentClients.slice(0, 4).map(client => (
-                    <div key={client.id} className="flex items-center justify-between group">
+              <div className="border border-border p-6">
+                <h3 className="mb-5 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                  Client Status
+                </h3>
+                <div className="flex flex-col">
+                  {recentClients.slice(0, 4).map((client, i) => (
+                    <div
+                      key={client.id}
+                      className="flex items-center justify-between border-b border-border py-3 first:pt-0 last:border-b-0 last:pb-0"
+                    >
                       <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-900 flex items-center justify-center text-white text-xs font-semibold">
-                            C{String(client.id || '?').charAt(0).toUpperCase()}
-                          </div>
-                          <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 ${client.status === 'active' ? 'bg-white' : 'bg-gray-500'} border-2 border-[#050505] rounded-full`}></div>
-                        </div>
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          {String(i + 1).padStart(2, '0')}
+                        </span>
+                        <Avatar className="h-7 w-7 rounded-none border border-border">
+                          <AvatarFallback className="rounded-none bg-foreground text-[10px] font-semibold text-background">
+                            {(client.name || '?').charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
                         <div>
-                          <p className="text-xs font-semibold text-white">{client.name}</p>
-                          <p className="text-[10px] text-gray-500">{client.projects_count} projects</p> 
+                          <p className="text-xs font-medium text-foreground">{client.name}</p>
+                          <p className="font-mono text-[10px] text-muted-foreground">
+                            {client.projects_count} projects
+                          </p>
                         </div>
                       </div>
-                      <span className="text-[10px] text-gray-500 font-medium">{formatRelativeTime(client.last_activity)}</span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`h-1.5 w-1.5 ${client.status === 'active' ? 'bg-foreground' : 'bg-border'}`}
+                        />
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          {formatRelativeTime(client.last_activity)}
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Pulse Monitor */}
-              <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 p-5 rounded-2xl hidden md:block">
-                <h3 className="text-xs font-semibold text-gray-400 uppercase mb-4 tracking-wider">Pulse Monitor</h3>
-                <div className="flex flex-col gap-4">
-                  {recentClients.slice(0, 4).map(client => (
-                    <div key={client.id} className="flex items-center justify-between group">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-[10px] text-gray-400">
-                            {(client.name || '?').charAt(0)}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-white">{client.name}</p>
-                          <p className="text-[10px] text-gray-500">Operations</p>
-                        </div>
+              <div className="hidden border border-border p-6 md:block">
+                <h3 className="mb-5 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                  Pulse Monitor
+                </h3>
+                <div className="flex flex-col">
+                  {recentClients.slice(0, 4).map((client) => (
+                    <div
+                      key={client.id}
+                      className="flex items-center justify-between border-b border-border py-3 first:pt-0 last:border-b-0 last:pb-0"
+                    >
+                      <div>
+                        <p className="text-xs font-medium text-foreground">{client.name}</p>
+                        <p className="font-mono text-[10px] text-muted-foreground">Operations</p>
                       </div>
-                      <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
-                        <div className="w-1/2 h-full bg-green-500/50"></div>
+                      <div className="h-[3px] w-14 bg-border">
+                        <div className="h-full w-1/2 bg-foreground" />
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Recent Tasks Summary */}
-              <div className="bg-white/[0.0] backdrop-blur-xl border border-white/5 card-bg p-5 rounded-2xl relative">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Quick Tasks</h3>
-                  <button className="p-1 hover:bg-white/5 rounded-full"><Plus size={16} className="text-gray-400" /></button>
+              {/* Quick Tasks — numbering is real here: it's a priority queue */}
+              <div className="border border-border p-6">
+                <div className="mb-5 flex items-center justify-between">
+                  <h3 className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                    Task Queue
+                  </h3>
+                  <Button size="icon" variant="ghost" className="h-6 w-6 rounded-none">
+                    <Plus size={14} className="text-muted-foreground" />
+                  </Button>
                 </div>
-                <div className="flex flex-col gap-5">
-                  {recentTasks.slice(0, 3).map(task => (
-                    <div key={task.id} className="flex flex-col gap-2 relative">
-                      <h4 className="text-xs font-bold leading-tight text-white">{task.title}</h4>
-                      <p className="text-[10px] text-gray-500">{task.client_key?.name || 'No client'}</p>
-                      <div className="flex justify-between items-center mt-2">
-                        <div className="flex gap-2">
-                          <span className="text-[8px] text-gray-400">{formatDate(task.created_at)}</span>
-                          <span className={`text-[8px] px-1.5 py-0.5 rounded ${getPriorityColor(task.priority)}`}>
+                <div className="flex flex-col">
+                  {recentTasks.slice(0, 3).map((task, i) => (
+                    <div
+                      key={task.id}
+                      className="flex gap-3 border-b border-border py-4 first:pt-0 last:border-b-0 last:pb-0"
+                    >
+                      <span className="font-mono text-[11px] text-muted-foreground">
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <div className="flex-1">
+                        <h4 className="text-xs font-medium leading-tight text-foreground">{task.title}</h4>
+                        <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                          {task.client_key?.name || 'No client'}
+                        </p>
+                        <div className="mt-2 flex items-center justify-between">
+                          <Badge
+                            variant="outline"
+                            className="rounded-none px-1.5 py-0 font-mono text-[9px] font-normal uppercase"
+                          >
                             {task.priority}
+                          </Badge>
+                          <span className="font-mono text-[9px] uppercase text-muted-foreground">
+                            {task.status}
                           </span>
                         </div>
-                        <button className="text-[10px] text-gray-400 flex items-center gap-1 hover:text-white">
-                          {task.status}
-                        </button>
                       </div>
                     </div>
                   ))}
@@ -715,118 +485,115 @@ const WorkProgressChart = () => {
             </div>
           </div>
         </main>
-          {/* Right Sidebar - Meeting Schedule */}
-          <aside className="max-w-[400px] w-full shrink-0 h-auto hidden mt-3 mr-8 xl:block bg-[#080808] border rounded-2xl border-white/5">
-            <div className="p-5 flex flex-col gap-8 h-full overflow-y-auto">
-              {/* Header */}
-              <div className="flex justify-between items-center">
-                <h2 className="text-[11px] font-bold text-gray-500 tracking-[0.2em] uppercase">MEETING SCHEDULE</h2>
-              </div>
 
-              {/* Date Navigation */}
-              <div className="bg-[#0f0f0f] border border-white/[0.03] rounded-[2rem] p-4 flex items-center justify-between">
-                <button className="p-2 bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors">
-                  <ChevronLeft size={18} />
-                </button>
-                <span className="text-sm font-medium text-gray-300">Dec, 2024</span>
-                <button className="p-2 bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors">
-                  <ChevronRight size={18} />
-                </button>
-              </div>
+        {/* Right Sidebar — Meeting Schedule */}
+        <aside className="mt-6 mr-8 mb-6 hidden w-full max-w-[380px] shrink-0 border border-border xl:block">
+          <div className="flex h-full flex-col gap-6 overflow-y-auto p-6">
+            <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              Schedule
+            </h2>
 
-              {/* Week Calendar */}
-              <div className="flex items-center justify-between px-2">
-                <button className="text-gray-600 hover:text-gray-400"><ChevronLeft size={16} /></button>
-                <div className="flex gap-1">
-                  {[
-                    { d: 'Mon', n: 26 },
-                    { d: 'Tue', n: 27 },
-                    { d: 'Wed', n: 28, active: true },
-                    { d: 'Thu', n: 29 },
-                    { d: 'Fri', n: 30 }
-                  ].map((day, i) => (
-                    <div 
-                      key={i} 
-                      className={`flex flex-col items-center justify-center w-12 py-3 rounded-[1.5rem] transition-all ${day.active ? 'bg-[#1a1a1a]' : ''}`}
-                    >
-                      <span className={`text-[10px] mb-2 font-medium ${day.active ? 'text-gray-300' : 'text-gray-600'}`}>
-                        {day.d}
+            {/* Date Navigation */}
+            <div className="flex items-center justify-between border-b border-border pb-4">
+              <button className="text-muted-foreground hover:text-foreground">
+                <ChevronLeft size={16} />
+              </button>
+              <span className="font-mono text-xs text-foreground">Dec, 2024</span>
+              <button className="text-muted-foreground hover:text-foreground">
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            {/* Week strip — underline instead of filled bubble */}
+            <div className="flex items-center justify-between">
+              {[
+                { d: 'Mon', n: 26 },
+                { d: 'Tue', n: 27 },
+                { d: 'Wed', n: 28, active: true },
+                { d: 'Thu', n: 29 },
+                { d: 'Fri', n: 30 },
+              ].map((day, i) => (
+                <div key={i} className="flex flex-col items-center gap-2 pb-2">
+                  <span className={`font-mono text-[10px] ${day.active ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    {day.d}
+                  </span>
+                  <span className={`text-sm font-semibold tabular-nums ${day.active ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    {day.n}
+                  </span>
+                  <span className={`mt-1 h-[2px] w-6 ${day.active ? 'bg-foreground' : 'bg-transparent'}`} />
+                </div>
+              ))}
+            </div>
+
+            {/* Search & Filter */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={14} />
+                <Input
+                  type="text"
+                  placeholder="Search"
+                  className="rounded-none border-border py-2 pl-9 pr-3 font-mono text-xs placeholder:text-muted-foreground"
+                />
+              </div>
+              <Button size="icon" variant="outline" className="rounded-none border-border text-muted-foreground hover:text-foreground">
+                <Filter size={16} />
+              </Button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex items-center gap-5 border-b border-border pb-3 font-mono text-[11px] uppercase tracking-widest">
+              <span className="border-b-2 border-foreground pb-3 -mb-3 text-foreground">Meeting</span>
+              <span className="text-muted-foreground hover:text-foreground">Events</span>
+              <span className="text-muted-foreground hover:text-foreground">Holiday</span>
+            </div>
+
+            {/* Meeting list — flat rows, no nested cards */}
+            <div className="flex flex-col">
+              {recentProjects.slice(0, 3).map((project, i) => (
+                <div key={project.id} className="border-b border-border py-5 first:pt-0 last:border-b-0 last:pb-0">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        {String(i + 1).padStart(2, '0')}
                       </span>
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${day.active ? 'bg-gradient-to-br from-green-600 to-green-500 text-white shadow-lg shadow-green-500/20' : 'text-gray-500'}`}>
-                        {day.n}
-                      </div>
+                      <h4 className="text-sm font-semibold tracking-tight text-foreground">{project.name}</h4>
                     </div>
-                  ))}
-                </div>
-                <button className="text-gray-600 hover:text-gray-400"><ChevronRight size={16} /></button>
-              </div>
+                    <span className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+                      <AlarmClock size={11} />
+                      {formatDate(project.due_date)}
+                    </span>
+                  </div>
 
-              {/* Search & Filter */}
-              <div className="flex gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
-                  <input 
-                    type="text" 
-                    placeholder="Search" 
-                    className="w-full bg-[#0f0f0f] border border-white/[0.03] rounded-[1.5rem] py-3.5 pl-12 pr-4 text-xs focus:outline-none focus:border-white/10 text-gray-300"
-                  />
-                </div>
-                <button className="p-3.5 bg-[#0f0f0f] rounded-[1.2rem] border border-white/[0.03] text-gray-500 hover:text-white">
-                  <Filter size={18} />
-                </button>
-              </div>
-
-              {/* Tabs */}
-              <div className="flex items-center gap-6 px-2">
-                <button className="px-8 py-3 bg-gradient-to-r from-gray-600/20 to-gray-500/20 rounded-full text-xs font-semibold text-[#ffffff] shadow-lg">
-                  Meeting
-                </button>
-                <button className="text-xs font-semibold text-gray-600 hover:text-gray-400">Events</button>
-                <button className="text-xs font-semibold text-gray-600 hover:text-gray-400">Holiday</button>
-              </div>
-
-              {/* Meeting Cards List */}
-              <div className="flex flex-col gap-3 mt-2 ">
-                {recentProjects.slice(0, 3).map((project) => (
-                  <div key={project.id} className="group bg-gradient-to-br p-5 rounded-2xl from-white/[] via-white/[0.03] to-white/[0.05] relative">
-                    <div className="flex justify-between items-start">
-                      <h4 className="text-[15px] font-bold text-gray-100 tracking-tight">{project.name}</h4>
-                      <div className="flex items-center gap-1.5 text-[#11892b] bg-[#57ca04]/10 px-2.5 py-1.5 rounded-[0.8rem] transition-colors">
-                        <AlarmClock size={13} className="stroke-[3]" />
-                        <span className="text-[10px] font-bold tracking-wider">{formatDate(project.due_date)}</span>
-                      </div>
-                    </div>
-                    
-                    <p className="text-[12px] text-gray-600 font-medium mb-6">{formatDate(project.due_date)}</p>
-                    
-                    <div className="flex -space-x-2.5 mb-6">
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="flex -space-x-2">
                       {[...Array(Math.min(3, Math.floor(Math.random() * 3) + 1))].map((_, idx) => (
-                        <div key={idx} className="w-7 h-7 rounded-full border-[3px] border-[#080808] bg-gradient-to-br from-red-500 to-white-500 flex items-center justify-center text-white text-[10px] font-semibold">
-                          {(project.name?.charAt(idx) ?? '?').toUpperCase()}
-                        </div>
+                        <Avatar key={idx} className="h-6 w-6 rounded-none border-2 border-card">
+                          <AvatarFallback className="rounded-none bg-foreground text-[9px] font-semibold text-background">
+                            {(project.name?.charAt(idx) ?? '?').toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
                       ))}
-                      <div className="w-7 h-7 rounded-full bg-[#1a1a1a] border-[3px] border-[#080808] flex items-center justify-center text-[10px] text-gray-500 font-bold">+2</div>
                     </div>
-                    
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2 text-[11px] text-gray-500">
-                        <ExternalLink size={10} />
-                        <span className="opacity-60">{project.client_key?.name || 'No client'}</span>
-                      </div>
-                      <div className="px-3 py-1 rounded-[0.6rem] bg-white/[0.03] text-[9px] text-gray-500 font-bold uppercase tracking-widest border border-white/5">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+                        <ExternalLink size={9} />
+                        {project.client_key?.name || 'No client'}
+                      </span>
+                      <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
                         {project.status}
-                      </div>
+                      </span>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-          </aside>
+          </div>
+        </aside>
 
-        {/* Floating Chat Trigger */}
-        <button className="fixed bottom-8 right-8 w-14 h-14 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-green-500 hover:scale-110 transition-transform xl:hidden z-50 shadow-lg shadow-green-500/20">
-          <MessageSquare size={24} />
-        </button>
+        {/* Floating chat trigger — square, minimal */}
+        <Button className="fixed bottom-8 right-8 z-50 h-12 w-12 rounded-none bg-foreground p-0 text-background shadow-none hover:bg-foreground/90 xl:hidden">
+          <MessageSquare size={20} />
+        </Button>
       </div>
     </AppLayout>
   );

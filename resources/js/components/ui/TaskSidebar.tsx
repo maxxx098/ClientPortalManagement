@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User } from "lucide-react";
 import { useForm, router } from "@inertiajs/react";
 import TaskComments from "@/components/task-comment";
 
@@ -152,7 +151,7 @@ export default function TaskSidebar({
     const taskDate = new Date(data.due_date);
     const taskStartDate = new Date(data.started_at || "");
     const projDate = new Date(projectDueDate);
-    
+
     if (taskDate > projDate) {
       onDueDateError?.();
       return;
@@ -165,15 +164,15 @@ export default function TaskSidebar({
   formData.append("status", data.status || "todo");
   formData.append("due_date", data.due_date || "");
   formData.append("started_at", data.started_at || "");
-  
+
   if (data.client_key_id || clientKey) {
     formData.append("client_key_id", data.client_key_id || clientKey);
   }
-  
+
   if (data.file) {
     formData.append("file", data.file);
   }
-  
+
   if (inputMode === "voice" && data.voice_message) {
     formData.append("voice_message", data.voice_message);
   }
@@ -212,27 +211,29 @@ const handleDelete = () => {
   }
 };
 
+  const FieldLabel = ({ htmlFor, children, required }: { htmlFor: string; children: React.ReactNode; required?: boolean }) => (
+    <Label htmlFor={htmlFor} className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+      {children} {required && <span className="text-foreground">*</span>}
+    </Label>
+  );
 
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-full sm:w-96 z-40 flex flex-col">
+    <div className="fixed right-0 top-0 bottom-0 z-40 flex w-full flex-col border-l border-border bg-background sm:w-96">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 sticky top-0">
-        <h2 className="text-lg font-semibold text-white">
+      <div className="sticky top-0 flex items-center justify-between border-b border-border px-6 py-4">
+        <h2 className="font-mono text-sm font-bold uppercase tracking-wider text-foreground">
           {mode === "view" ? "Task Details" : mode === "edit" ? "Edit Task" : "Create Task"}
         </h2>
-        <button
-          onClick={onClose}
-          className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
-        >
-          <X className="w-5 h-5 text-gray-400" />
+        <button onClick={onClose} className="rounded-none p-2 transition-colors hover:bg-accent">
+          <X className="h-5 w-5 text-muted-foreground" />
         </button>
       </div>
 
       {/* Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+      <div className="flex-1 space-y-6 overflow-y-auto px-6 py-4">
         {/* Error Messages */}
         {Object.keys(errors).length > 0 && (
-          <div className="bg-red-900/30 border border-red-700 text-red-400 p-3 rounded text-sm">
+          <div className="border border-foreground bg-muted p-3 text-sm text-foreground">
             {(errors as any).form ? (
               (errors as any).form
             ) : (
@@ -247,37 +248,33 @@ const handleDelete = () => {
 
         {/* Title */}
         <div className="space-y-2">
-          <Label htmlFor="title" className="text-gray-300">
-            Task Title {!isViewMode && <span className="text-red-500">*</span>}
-          </Label>
+          <FieldLabel htmlFor="title" required={!isViewMode}>Task Title</FieldLabel>
           <Input
             id="title"
             value={data.title || ""}
             onChange={(e) => setData("title", e.target.value)}
             placeholder="Enter task title"
             disabled={isViewMode}
-            className={`text-white placeholder:text-slate-500 ${
-              errors.title ? "border-red-500" : ""
-            }`}
+            className={`rounded-none border-border ${errors.title ? "border-foreground" : ""}`}
           />
-          {errors.title && <p className="text-sm text-red-500">{errors.title}</p>}
+          {errors.title && <p className="text-sm text-foreground">{errors.title}</p>}
         </div>
 
         {/* Input Mode (Create only) */}
         {mode === "create" && (
           <div className="space-y-3">
-            <Label className="text-gray-300">Input Method</Label>
+            <Label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Input Method</Label>
             <RadioGroup value={inputMode} onValueChange={(val: any) => setInputMode(val)} className="flex gap-4">
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="text" id="text" />
-                <Label htmlFor="text" className="flex items-center gap-2 cursor-pointer text-gray-300">
+                <Label htmlFor="text" className="flex cursor-pointer items-center gap-2 text-muted-foreground">
                   <FileText className="h-4 w-4" />
                   Text
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="voice" id="voice" />
-                <Label htmlFor="voice" className="flex items-center gap-2 cursor-pointer text-gray-300">
+                <Label htmlFor="voice" className="flex cursor-pointer items-center gap-2 text-muted-foreground">
                   <Mic className="h-4 w-4" />
                   Voice
                 </Label>
@@ -289,7 +286,7 @@ const handleDelete = () => {
         {/* Description or Voice Message */}
         {inputMode === "text" || isViewMode ? (
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-gray-300">Description</Label>
+            <FieldLabel htmlFor="description">Description</FieldLabel>
             <Textarea
               id="description"
               value={data.description || ""}
@@ -297,54 +294,44 @@ const handleDelete = () => {
               placeholder="Describe the task in detail (optional)"
               disabled={isViewMode}
               rows={5}
-              className="text-white placeholder:text-slate-500 resize-none"
+              className="resize-none rounded-none border-border"
             />
           </div>
         ) : (
           <div className="space-y-2">
-            <Label className="text-gray-300">Voice Message</Label>
+            <Label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Voice Message</Label>
             <div className="flex items-center gap-3">
               <Button
                 type="button"
                 onClick={isRecording ? stopRecording : startRecording}
-                variant={isRecording ? "destructive" : "outline"}
-                className="gap-2"
+                variant="outline"
+                className="gap-2 rounded-none border-border"
               >
                 <Mic className="h-4 w-4" />
                 {isRecording ? "Stop" : "Record"}
               </Button>
               {voiceRecorded && (
-                <span className="text-sm text-green-600 flex items-center gap-1">
-                  <span className="text-lg">✓</span> Recorded
+                <span className="flex items-center gap-1 font-mono text-xs text-foreground">
+                  <span>✓</span> Recorded
                 </span>
               )}
             </div>
-            {isRecording && <p className="text-sm text-slate-400 animate-pulse">Recording...</p>}
+            {isRecording && <p className="animate-pulse font-mono text-xs text-muted-foreground">Recording...</p>}
           </div>
         )}
 
         {/* View mode: Show voice message player */}
         {isViewMode && task?.voice_message && (
           <div className="space-y-2">
-            <Label className="text-gray-300">Voice Message</Label>
-            <div 
+            <Label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Voice Message</Label>
+            <div
               className="w-full"
               onMouseDown={(e) => e.stopPropagation()}
               onTouchStart={(e) => e.stopPropagation()}
             >
-              <audio 
-                controls 
-                className="w-full rounded"
-                preload="metadata"
-              >
-                <source 
-                  src={`/storage/${task.voice_message}`}
-                  type="audio/webm" 
-                />
-                <source 
-                  src={`/storage/${task.voice_message}`}
-                  type="audio/mpeg" 
-                />
+              <audio controls className="w-full" preload="metadata">
+                <source src={`/storage/${task.voice_message}`} type="audio/webm" />
+                <source src={`/storage/${task.voice_message}`} type="audio/mpeg" />
                 Your browser does not support the audio element.
               </audio>
             </div>
@@ -352,37 +339,37 @@ const handleDelete = () => {
         )}
         {/* Start Date */}
         <div className="space-y-2">
-          <Label htmlFor="started_at" className="text-gray-300">Start Date</Label>
+          <FieldLabel htmlFor="started_at">Start Date</FieldLabel>
           <Input
             id="started_at"
             type="date"
             value={data.started_at || ""}
             onChange={(e) => setData("started_at", e.target.value)}
             disabled={isViewMode}
-            className="text-white"
+            className="rounded-none border-border"
           />
         </div>
         {/* Due Date */}
         <div className="space-y-2">
-          <Label htmlFor="due_date" className="text-gray-300">Due Date</Label>
+          <FieldLabel htmlFor="due_date">Due Date</FieldLabel>
           <Input
             id="due_date"
             type="date"
             value={data.due_date || ""}
             onChange={(e) => setData("due_date", e.target.value)}
             disabled={isViewMode}
-            className="text-white"
+            className="rounded-none border-border"
           />
         </div>
 
         {/* Status */}
         <div className="space-y-2">
-          <Label htmlFor="status" className="text-gray-300">Status</Label>
+          <FieldLabel htmlFor="status">Status</FieldLabel>
           <Select value={data.status || "todo"} onValueChange={(val: any) => setData("status", val)} disabled={isViewMode}>
-            <SelectTrigger id="status" className="text-white">
+            <SelectTrigger id="status" className="rounded-none border-border">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="">
+            <SelectContent className="rounded-none">
               <SelectItem value="todo">To Do</SelectItem>
               <SelectItem value="in_progress">In Progress</SelectItem>
               <SelectItem value="done">Done</SelectItem>
@@ -392,19 +379,19 @@ const handleDelete = () => {
 
         {/* Client (Admin only) */}
         {userRole === "admin" && (
-          <div className="space-y-2 z-50 overflow-hidden">
-            <Label htmlFor="client_key_id" className="text-gray-300">Client {!isViewMode && <span className="text-red-500">*</span>}</Label>
+          <div className="z-50 space-y-2 overflow-hidden">
+            <FieldLabel htmlFor="client_key_id" required={!isViewMode}>Client</FieldLabel>
             <Select
               value={data.client_key_id || clientKey}
               onValueChange={(val: any) => setData("client_key_id", val)}
               disabled={isViewMode || !!clientKey}
             >
-              <SelectTrigger id="client_key_id" className="text-white">
+              <SelectTrigger id="client_key_id" className="rounded-none border-border">
                 <SelectValue placeholder="Select client" />
               </SelectTrigger>
-              <SelectContent className="z-30 overflow-hidden">
+              <SelectContent className="z-30 overflow-hidden rounded-none">
                 {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id} >
+                  <SelectItem key={client.id} value={client.id}>
                     Client:{client.id}
                   </SelectItem>
                 ))}
@@ -416,23 +403,28 @@ const handleDelete = () => {
         {/* File Attachment */}
         {!isViewMode && (
           <div className="space-y-2">
-            <Label htmlFor="file" className="text-gray-300">Attach File</Label>
+            <FieldLabel htmlFor="file">Attach File</FieldLabel>
             <Input
               id="file"
               type="file"
               accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
               onChange={(e) => setData("file", e.target.files?.[0] || null)}
-              className="text-gray-400"
+              className="rounded-none border-border text-muted-foreground"
             />
-            <p className="text-xs text-slate-500">Max 10MB. PDF, DOC, DOCX, JPG, PNG</p>
+            <p className="font-mono text-[10px] text-muted-foreground">Max 10MB. PDF, DOC, DOCX, JPG, PNG</p>
           </div>
         )}
 
         {/* View mode: Show attached file */}
         {isViewMode && task?.file && (
           <div className="space-y-2">
-            <Label className="text-gray-300">Attached File</Label>
-            <a href={`/storage/${task.file}`} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-sm break-all">
+            <Label className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Attached File</Label>
+            <a
+              href={`/storage/${task.file}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="break-all text-sm text-foreground underline underline-offset-2 hover:text-muted-foreground"
+            >
               {task.file.split("/").pop()}
             </a>
           </div>
@@ -440,7 +432,7 @@ const handleDelete = () => {
 
         {/* Comments Section - Only in View Mode */}
         {isViewMode && task && (
-          <div className="space-y-3 border-t border-slate-700 pt-4">
+          <div className="space-y-3 border-t border-border pt-4">
             <TaskComments
               taskId={task.id}
               isAdmin={isAdmin}
@@ -452,18 +444,24 @@ const handleDelete = () => {
       </div>
 
       {/* Footer Actions */}
-      <div className=" px-6 py-4 flex gap-3 sticky bottom-0">
-        <Button variant="outline" onClick={onClose} disabled={processing} className="flex-1">
+      <div className="sticky bottom-0 flex gap-3 border-t border-border px-6 py-4">
+        <Button variant="outline" onClick={onClose} disabled={processing} className="flex-1 rounded-none border-border">
           {isViewMode ? "Close" : "Cancel"}
         </Button>
         {!isViewMode && (
-          <Button onClick={handleSave} disabled={processing} className="flex-1">
+          <Button onClick={handleSave} disabled={processing} className="flex-1 gap-2 rounded-none bg-foreground text-background hover:bg-foreground/90">
+            <Save className="h-4 w-4" />
             {processing ? "Saving..." : mode === "edit" ? "Update" : "Create"}
           </Button>
         )}
         {isViewMode && task && (
-          <Button variant="destructive" onClick={handleDelete} disabled={processing}>
-            <Trash2 className="w-4 h-4" />
+          <Button
+            variant="outline"
+            onClick={handleDelete}
+            disabled={processing}
+            className="rounded-none border-border text-muted-foreground hover:text-foreground"
+          >
+            <Trash2 className="h-4 w-4" />
           </Button>
         )}
       </div>

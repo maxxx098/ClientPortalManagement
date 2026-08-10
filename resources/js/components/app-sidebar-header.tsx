@@ -3,34 +3,32 @@ import { Link, usePage, router } from '@inertiajs/react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { type SharedData, type BreadcrumbItem as BreadcrumbItemType } from '@/types';
-import { 
+import {
   Bell,
   Search,
-  Calendar,
-  Plus,
-  Activity,
   ChevronDown,
   Settings,
   Wallet,
   User,
   LogOut,
-  Shield
+  Shield,
+  Activity,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { edit } from '@/routes/profile';
 
 interface AppSidebarHeaderProps {
   breadcrumbs?: BreadcrumbItemType[];
 }
 
-export function AppSidebarHeader({
-  breadcrumbs = []
-}: AppSidebarHeaderProps) {
+export function AppSidebarHeader({ breadcrumbs = [] }: AppSidebarHeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  // Get recentActivity from global Inertia props
   const { auth, recentActivity = [] } = usePage<SharedData>().props;
   const activities = Array.isArray(recentActivity) ? recentActivity : [];
 
@@ -57,8 +55,8 @@ export function AppSidebarHeader({
         setShowProfileDropdown(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleLogout = () => {
@@ -66,163 +64,180 @@ export function AppSidebarHeader({
   };
 
   return (
-    <div className="flex items-center justify-between px-6 py-4 mb-8 shadow-2xl pt-7 border-b border-white/5 pb-7">
+    <div className="mb-8 flex items-center justify-between border-b border-border px-6 py-5">
       {/* Left Section: Profile */}
       <div className="flex items-center space-x-4">
         <SidebarTrigger className="-ml-1" />
-        
-        <div className="relative">
-          <img 
-            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ryan" 
-            alt="Ryan Crawford" 
-            className="w-12 h-12 rounded-full border-2 border-[#1e1e24] bg-[#1e1e24]"
-          />
-        </div>
+
+        <img
+          src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ryan"
+          alt="Ryan Crawford"
+          className="h-11 w-11 border border-border bg-muted"
+        />
+
         <div className="flex flex-col">
           <div className="flex items-center space-x-2">
-            <span className="text-gray-500 text-xs font-medium">
-              {auth.user?.email}
-            </span>
-            <span className="bg-[#1e1e24] text-[#29b527] text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider">
-              {auth.user?.role === 'admin' ? 'PRO' : 'FREE'}
-            </span>
+            <span className="font-mono text-[11px] text-muted-foreground">{auth.user?.email}</span>
+            <Badge
+              variant="outline"
+              className="rounded-none px-1.5 py-0 font-mono text-[9px] font-bold uppercase tracking-wider"
+            >
+              {auth.user?.role === 'admin' ? 'Pro' : 'Free'}
+            </Badge>
           </div>
-          
-          {/* Profile Dropdown Button */}
+
+          {/* Profile Dropdown */}
           <div className="relative" ref={profileRef}>
-            <button 
+            <button
               onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-              className="flex items-center text-white font-semibold text-sm group"
+              className="group flex items-center text-sm font-semibold text-foreground"
             >
               <span>{auth.user?.role === 'admin' ? 'Administrator' : 'Client User'}</span>
-              <ChevronDown size={14} className="ml-1 text-gray-500 group-hover:text-white transition-colors" />
+              <ChevronDown
+                size={14}
+                className="ml-1 text-muted-foreground transition-colors group-hover:text-foreground"
+              />
             </button>
 
-            {/* Profile Dropdown Menu */}
             {showProfileDropdown && (
-              <div className="absolute left-0 mt-3 w-64 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl z-50 backdrop-blur-xl">
-                <div className="p-4 border-b border-white/5">
+              <div className="absolute left-0 z-50 mt-3 w-64 border border-border bg-popover">
+                <div className="border-b border-border p-4">
                   <div className="flex items-center space-x-3">
-                    <img 
-                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ryan" 
-                      alt={auth.user?.name} 
-                      className="w-10 h-10 rounded-full border-2 border-[#1e1e24] bg-[#1e1e24]"
+                    <img
+                      src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ryan"
+                      alt={auth.user?.name}
+                      className="h-9 w-9 border border-border bg-muted"
                     />
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-white">{auth.user?.name}</span>
-                      <span className="text-xs text-gray-400">{auth.user?.email}</span>
+                      <span className="text-sm font-semibold text-popover-foreground">{auth.user?.name}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">{auth.user?.email}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="py-2">
+                <div className="py-1">
                   <Link
                     href={edit().url}
-                    className="flex items-center space-x-3 px-4 py-3 hover:bg-white/5 transition-colors group"
+                    className="group flex items-center space-x-3 px-4 py-3 transition-colors hover:bg-accent"
                   >
-                    <User size={16} className="text-gray-400 group-hover:text-white" />
+                    <User size={15} className="text-muted-foreground group-hover:text-accent-foreground" />
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-white">Profile Settings</span>
-                      <span className="text-xs text-gray-500">Update your name and email</span>
+                      <span className="text-xs font-medium text-popover-foreground">Profile Settings</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">Update your name and email</span>
                     </div>
                   </Link>
 
                   {auth.user?.role === 'admin' && (
                     <Link
                       href="/admin"
-                      className="flex items-center space-x-3 px-4 py-3 hover:bg-white/5 transition-colors group"
+                      className="group flex items-center space-x-3 px-4 py-3 transition-colors hover:bg-accent"
                     >
-                      <Shield size={16} className="text-gray-400 group-hover:text-white" />
+                      <Shield size={15} className="text-muted-foreground group-hover:text-accent-foreground" />
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-white">Admin Dashboard</span>
-                        <span className="text-xs text-gray-500">Manage system settings</span>
+                        <span className="text-xs font-medium text-popover-foreground">Admin Dashboard</span>
+                        <span className="font-mono text-[10px] text-muted-foreground">Manage system settings</span>
                       </div>
                     </Link>
                   )}
 
                   <Link
                     href="/settings"
-                    className="flex items-center space-x-3 px-4 py-3 hover:bg-white/5 transition-colors group"
+                    className="group flex items-center space-x-3 px-4 py-3 transition-colors hover:bg-accent"
                   >
-                    <Settings size={16} className="text-gray-400 group-hover:text-white" />
+                    <Settings size={15} className="text-muted-foreground group-hover:text-accent-foreground" />
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-white">Account Settings</span>
-                      <span className="text-xs text-gray-500">Preferences and security</span>
+                      <span className="text-xs font-medium text-popover-foreground">Account Settings</span>
+                      <span className="font-mono text-[10px] text-muted-foreground">Preferences and security</span>
                     </div>
                   </Link>
                 </div>
 
-                <div className="border-t border-white/5 py-2">
+                <div className="border-t border-border py-1">
                   <button
                     onClick={handleLogout}
-                    className="flex items-center space-x-3 px-4 py-3 hover:bg-red-500/10 transition-colors group w-full text-left"
+                    className="group flex w-full items-center space-x-3 px-4 py-3 text-left transition-colors hover:bg-accent"
                   >
-                    <LogOut size={16} className="text-gray-400 group-hover:text-red-400" />
-                    <span className="text-sm font-medium text-gray-300 group-hover:text-red-400">Log out</span>
+                    <LogOut size={15} className="text-muted-foreground group-hover:text-foreground" />
+                    <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">
+                      Log out
+                    </span>
                   </button>
                 </div>
               </div>
             )}
           </div>
         </div>
-        
-        <div className="h-10 w-px bg-white/10 mx-4 hidden md:block"></div>
+
+        <div className="mx-4 hidden h-10 w-px bg-border md:block" />
 
         {/* Deposit Button */}
-        <button className="bg-[#10bc3e] hover:bg-[#42d408] text-[#0a0a0c] px-5 py-2 rounded-2xl flex items-center space-x-2 font-bold text-sm transition-all transform active:scale-95 shadow-lg shadow-green-500/20">
-          <span>Deposit</span>
-          <Wallet size={16} />
-        </button>
+        <Button className="gap-2 rounded-none bg-foreground font-mono text-xs font-bold uppercase tracking-wider text-background hover:bg-foreground/90">
+          Deposit
+          <Wallet size={14} />
+        </Button>
       </div>
 
       {/* Right Section: Actions */}
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-3">
         {/* Notification Bell */}
         <div className="relative" ref={notifRef}>
-          <div className="relative group cursor-pointer">
-            <button
+          <div className="group relative cursor-pointer">
+            <Button
+              size="icon"
+              variant="outline"
               onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2.5 rounded-full border border-white/10 hover:bg-white/5 transition-colors"
+              className="rounded-none border-border"
             >
-              <Bell size={18} className="text-gray-300 group-hover:text-white" />
-            </button>
+              <Bell size={16} className="text-muted-foreground group-hover:text-foreground" />
+            </Button>
             {activities.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[#2bbe28] text-[#0a0a0c] text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#0a0a0c]">
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center border border-background bg-foreground font-mono text-[9px] font-bold text-background">
                 {activities.length}
               </span>
             )}
           </div>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-3 w-80 bg-[#0a0a0a] border border-white/10 rounded-2xl shadow-2xl z-50 backdrop-blur-xl">
-              <div className="p-4 border-b border-white/5 flex justify-between items-center">
-                <h3 className="text-sm font-semibold text-white">Notifications</h3>
-                <Link href="#" className="text-xs text-gray-400 hover:text-white">
+            <div className="absolute right-0 z-50 mt-3 w-80 border border-border bg-popover">
+              <div className="flex items-center justify-between border-b border-border p-4">
+                <h3 className="font-mono text-[11px] uppercase tracking-widest text-popover-foreground">
+                  Notifications
+                </h3>
+                <Link href="#" className="font-mono text-[10px] text-muted-foreground hover:text-foreground">
                   View all
                 </Link>
               </div>
 
               <div className="max-h-80 overflow-y-auto">
                 {activities.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Activity className="w-10 h-10 opacity-30 mx-auto mb-2" />
-                    <p className="text-xs">No new notifications</p>
+                  <div className="py-8 text-center text-muted-foreground">
+                    <Activity className="mx-auto mb-2 h-8 w-8 opacity-30" />
+                    <p className="font-mono text-[10px]">No new notifications</p>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-5 p-4">
-                    {activities.slice(0, 5).map((activity) => (
-                      <div key={activity.id} className="flex flex-col gap-2 relative">
-                        <h4 className="text-xs font-bold leading-tight text-white">
-                          {activity.description}
-                        </h4>
-                        <div className="flex justify-between items-center mt-2">
-                          <div className="flex gap-2">
-                            <span className="text-[8px] text-gray-400">
+                  <div className="flex flex-col">
+                    {activities.slice(0, 5).map((activity, i) => (
+                      <div
+                        key={activity.id}
+                        className="flex gap-3 border-b border-border px-4 py-3 last:border-b-0"
+                      >
+                        <span className="font-mono text-[10px] text-muted-foreground">
+                          {String(i + 1).padStart(2, '0')}
+                        </span>
+                        <div className="flex flex-1 flex-col gap-1.5">
+                          <h4 className="text-xs font-medium leading-tight text-popover-foreground">
+                            {activity.description}
+                          </h4>
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-[9px] text-muted-foreground">
                               {formatRelativeTime(activity.timestamp)}
                             </span>
-                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-purple-500/30 text-purple-300">
+                            <Badge
+                              variant="outline"
+                              className="rounded-none px-1.5 py-0 font-mono text-[9px] font-normal uppercase"
+                            >
                               {activity.type}
-                            </span>
+                            </Badge>
                           </div>
                         </div>
                       </div>
@@ -235,22 +250,22 @@ export function AppSidebarHeader({
         </div>
 
         {/* Search Bar */}
-        <div className="relative flex items-center bg-[#151518] rounded-2xl border border-white/5 px-4 py-2 w-48 md:w-64 focus-within:ring-1 focus-within:ring-white/20 transition-all">
-          <input
+        <div className="relative flex w-48 items-center border border-border bg-muted px-3 py-2 focus-within:border-foreground md:w-64">
+          <Input
             type="text"
             placeholder="Search..."
-            className="bg-transparent border-none outline-none text-sm text-gray-200 placeholder-gray-500 w-full"
+            className="h-auto border-none bg-transparent p-0 font-mono text-xs text-foreground placeholder:text-muted-foreground focus-visible:ring-0"
           />
-          <Search size={16} className="text-gray-500 ml-2" />
+          <Search size={15} className="ml-2 text-muted-foreground" />
         </div>
 
         {/* Settings Button */}
-        <Link 
+        <Link
           href="/settings"
-          className="flex items-center space-x-2 bg-transparent hover:bg-white/5 border border-white/10 px-4 py-2 rounded-2xl text-sm font-semibold text-gray-300 transition-colors"
+          className="flex items-center space-x-2 border border-border px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
           <span>Settings</span>
-          <Settings size={16} className="text-gray-500" />
+          <Settings size={15} className="text-muted-foreground" />
         </Link>
       </div>
     </div>

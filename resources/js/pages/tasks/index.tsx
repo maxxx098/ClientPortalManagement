@@ -8,9 +8,8 @@ import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { SidebarInset } from '@/components/ui/sidebar';
-import { Card } from "@/components/ui/card";
 import { router } from "@inertiajs/react";
-import { FolderKanban, Key, AlertTriangle } from "lucide-react";
+import { FolderKanban, AlertTriangle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,15 +93,18 @@ export default function Index({
         <AppSidebar />
         <SidebarInset>
           <AppSidebarHeader breadcrumbs={[]} />
-          <div className="flex flex-col items-center justify-center h-[70vh] text-center p-6">
-            <div className="rounded-full bg-blue-500/10 p-6 mb-6">
-              <FolderKanban className="w-16 h-16 text-blue-500" />
+          <div className="flex h-[70vh] flex-col items-center justify-center p-6 text-center">
+            <div className="mb-6 border border-border p-6">
+              <FolderKanban className="h-14 w-14 text-foreground" />
             </div>
-            <h1 className="text-2xl font-bold mb-3">No Projects Found</h1>
-            <p className="text-sm text-muted-foreground mb-6 max-w-md">
+            <h1 className="mb-3 text-2xl font-semibold text-foreground">No Projects Found</h1>
+            <p className="mb-6 max-w-md text-sm text-muted-foreground">
               You need to create at least one project before creating or managing tasks.
             </p>
-            <Button onClick={() => router.visit('/admin/projects')} className="gap-2">
+            <Button
+              onClick={() => router.visit('/admin/projects')}
+              className="gap-2 rounded-none bg-foreground text-background hover:bg-foreground/90"
+            >
               <FolderKanban className="h-4 w-4" />
               Go to Project Management
             </Button>
@@ -147,9 +149,9 @@ export default function Index({
   const confirmDelete = () => {
     if (taskToDelete !== null) {
       setIsProcessing(true);
-      
+
       setOptimisticTasks(prev => prev.filter(task => task.id !== taskToDelete));
-      
+
       router.delete(`${routePrefix}/tasks/${taskToDelete}`, {
         preserveScroll: true,
         preserveState: true,
@@ -171,13 +173,13 @@ export default function Index({
 
   const handleUpdateStatus = (taskId: number, status: Task["status"]) => {
     // Optimistically update the UI immediately
-    setOptimisticTasks(prev => 
-      prev.map(task => 
+    setOptimisticTasks(prev =>
+      prev.map(task =>
         task.id === taskId ? { ...task, status } : task
       )
     );
 
-    // Save to the database 
+    // Save to the database
     const formData = new FormData();
     formData.append("status", status);
     formData.append("_method", "PATCH");
@@ -220,7 +222,7 @@ export default function Index({
         }}
       >
         <AppSidebarHeader breadcrumbs={[]} />
-        
+
         <TaskBoard
           tasks={optimisticTasks}
           clients={clients}
@@ -237,7 +239,7 @@ export default function Index({
 
         {/* Sidebar */}
         <div
-          className={`fixed right-0 top-0 h-full w-96 transform transition-transform duration-300 ease-linear z-[100] ${
+          className={`fixed right-0 top-0 z-[100] h-full w-96 transform transition-transform duration-300 ease-linear ${
             sidebarOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
@@ -263,42 +265,43 @@ export default function Index({
         {deleteDialogOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteDialogOpen(false)} />
-            <Card className=" border rounded-lg p-6 max-w-sm relative z-10 space-y-4">
-              <h3 className="text-lg font-semibold text-white">Delete Task?</h3>
-              <p className="text-gray-400 text-sm">This action cannot be undone. The task will be permanently deleted.</p>
-              <div className="flex gap-3 justify-end">
-                <Button 
-                  variant="outline" 
+            <div className="relative z-10 max-w-sm space-y-4 border border-border bg-background p-6">
+              <h3 className="text-lg font-semibold text-foreground">Delete Task?</h3>
+              <p className="text-sm text-muted-foreground">This action cannot be undone. The task will be permanently deleted.</p>
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
                   onClick={() => setDeleteDialogOpen(false)}
                   disabled={isProcessing}
+                  className="rounded-none border-border"
                 >
                   Cancel
                 </Button>
-                <Button 
-                  variant="destructive" 
+                <Button
                   onClick={confirmDelete}
                   disabled={isProcessing}
+                  className="rounded-none bg-foreground text-background hover:bg-foreground/90"
                 >
                   {isProcessing ? "Deleting..." : "Delete"}
                 </Button>
               </div>
-            </Card>
+            </div>
           </div>
         )}
       </SidebarInset>
 
       {/* Backdrop Overlay */}
       {showDueDateAlert && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[199]" />
+        <div className="fixed inset-0 z-[199] bg-black/60 backdrop-blur-sm" />
       )}
 
       {/* Alert Dialog */}
       <AlertDialog open={showDueDateAlert} onOpenChange={setShowDueDateAlert}>
-        <AlertDialogContent className="z-[200]">
+        <AlertDialogContent className="z-[200] rounded-none border-border">
           <AlertDialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <div className="mb-2 flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center border border-border">
+                <AlertTriangle className="h-5 w-5 text-foreground" />
               </div>
               <AlertDialogTitle className="text-lg font-semibold">
                 Invalid Due Date
@@ -309,7 +312,10 @@ export default function Index({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowDueDateAlert(false)}>
+            <AlertDialogAction
+              onClick={() => setShowDueDateAlert(false)}
+              className="rounded-none bg-foreground text-background hover:bg-foreground/90"
+            >
               OK
             </AlertDialogAction>
           </AlertDialogFooter>

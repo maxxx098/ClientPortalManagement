@@ -47,12 +47,26 @@ class InvoiceController extends Controller
             $query->where('amount', '<=', $request->amount_max);
         }
 
+        // NEW: free-text search over invoice number and client name/key.
+        // The frontend search box previously only filtered the 20 rows
+        // already loaded on the current page, which was misleading.
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('invoice_number', 'like', "%{$search}%")
+                    ->orWhereHas('clientKey', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%")
+                            ->orWhere('key', 'like', "%{$search}%");
+                    });
+            });
+        }
+
         // Check for overdue invoices and update status
         Invoice::where('status', 'unpaid')
             ->where('due_date', '<', now())
             ->update(['status' => 'overdue']);
 
-        $invoices = $query->latest('invoice_date')->paginate(20);
+        $invoices = $query->latest('invoice_date')->paginate(20)->withQueryString();
 
         // Calculate statistics
         $stats = [
@@ -67,6 +81,7 @@ class InvoiceController extends Controller
                 ->whereMonth('invoice_date', now()->month)
                 ->whereYear('invoice_date', now()->year)
                 ->sum('amount'),
+            'average_days_to_pay' => $this->calculateAverageDaysToPay(),
         ];
 
         // Monthly revenue chart data (last 6 months)
@@ -91,8 +106,25 @@ class InvoiceController extends Controller
             'clients' => $clients,
             'stats' => $stats,
             'monthlyRevenue' => $monthlyRevenue,
-            'filters' => $request->only(['status', 'client_key', 'date_from', 'date_to', 'amount_min', 'amount_max']),
+            'filters' => $request->only(['status', 'client_key', 'date_from', 'date_to', 'amount_min', 'amount_max', 'search']),
         ]);
+    }
+
+    private function calculateAverageDaysToPay(): ?int
+    {
+        $daysToPay = Invoice::where('status', 'paid')
+            ->with('payments')
+            ->get()
+            ->map(function ($invoice) {
+                $lastPayment = $invoice->payments->sortByDesc('payment_date')->first();
+                if (!$lastPayment || !$invoice->invoice_date) {
+                    return null;
+                }
+                return Carbon::parse($invoice->invoice_date)->diffInDays(Carbon::parse($lastPayment->payment_date));
+            })
+            ->filter(fn ($d) => $d !== null);
+
+        return $daysToPay->count() > 0 ? (int) round($daysToPay->avg()) : null;
     }
 
     public function store(Request $request, $clientKey)
@@ -137,12 +169,13 @@ class InvoiceController extends Controller
             'notes' => $data['notes'] ?? null,
             'internal_notes' => $data['internal_notes'] ?? null,
             'payment_terms' => $data['payment_terms'] ?? 'Net 30',
-            'items' => $data['items'], // Store items as JSON
+            'items' => $data['items'],
         ]);
 
         return redirect()->route('admin.invoices.index')
             ->with('success', 'Invoice created successfully.');
     }
+
     public function show(Invoice $invoice)
     {
         return Inertia::render('admin/invoices/show', [
@@ -189,9 +222,9 @@ class InvoiceController extends Controller
     public function downloadPdf(Invoice $invoice)
     {
         $invoice->load(['clientKey', 'items', 'payments']);
-        
+
         $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
-        
+
         return $pdf->download($invoice->invoice_number . '.pdf');
     }
 
@@ -212,9 +245,15 @@ class InvoiceController extends Controller
     {
         $query = Invoice::with(['clientKey', 'payments']);
 
-        // Apply same filters as index
         if ($request->filled('status')) {
             $query->where('status', $request->status);
+        }
+
+        if ($request->filled('client_key')) {
+            $client = ClientKey::where('key', $request->client_key)->first();
+            if ($client) {
+                $query->where('client_key_id', $client->id);
+            }
         }
 
         if ($request->filled('date_from')) {
@@ -225,16 +264,27 @@ class InvoiceController extends Controller
             $query->whereDate('invoice_date', '<=', $request->date_to);
         }
 
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('invoice_number', 'like', "%{$search}%")
+                    ->orWhereHas('clientKey', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%")
+                            ->orWhere('key', 'like', "%{$search}%");
+                    });
+            });
+        }
+
         $invoices = $query->get();
 
         $filename = 'invoices_' . now()->format('Y-m-d') . '.csv';
-        
+
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 
-        $callback = function() use ($invoices) {
+        $callback = function () use ($invoices) {
             $file = fopen('php://output', 'w');
             fputcsv($file, ['Invoice #', 'Client', 'Date', 'Due Date', 'Amount', 'Paid', 'Status']);
 
@@ -270,9 +320,8 @@ class InvoiceController extends Controller
 
         Payments::create($data);
 
-        // Update invoice status if fully paid
         $totalPaid = $invoice->payments()->sum('amount');
-        
+
         if ($totalPaid >= $invoice->amount) {
             $invoice->update(['status' => 'paid']);
         } elseif ($totalPaid > 0 && $invoice->status === 'unpaid') {
@@ -289,8 +338,6 @@ class InvoiceController extends Controller
         $newInvoice->invoice_date = now();
         $newInvoice->due_date = now()->addDays(30);
         $newInvoice->status = 'unpaid';
-
-        // If items are stored as a JSON/array on the invoice model, copy them directly
         $newInvoice->items = $invoice->items ?? [];
         $newInvoice->save();
 
@@ -298,7 +345,7 @@ class InvoiceController extends Controller
             ->with('success', 'Invoice duplicated successfully.');
     }
 
-     public function updateStatus(Request $request, Invoice $invoice)
+    public function updateStatus(Request $request, Invoice $invoice)
     {
         $validated = $request->validate([
             'invoice_date' => 'required|date',
@@ -308,11 +355,10 @@ class InvoiceController extends Controller
             'internal_notes' => 'nullable|string',
         ]);
 
-        // Auto-create payment when marking as paid
         if ($validated['status'] === 'paid' && $invoice->status !== 'paid') {
             $totalPaid = $invoice->payments()->sum('amount');
             $balance = $invoice->amount - $totalPaid;
-            
+
             if ($balance > 0) {
                 $invoice->payments()->create([
                     'amount' => $balance,
@@ -327,5 +373,4 @@ class InvoiceController extends Controller
 
         return redirect()->back()->with('success', 'Invoice updated successfully');
     }
-
 }

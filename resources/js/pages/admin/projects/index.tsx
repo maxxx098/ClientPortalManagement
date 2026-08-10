@@ -1,22 +1,22 @@
 import { Head, usePage, router } from "@inertiajs/react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { useState } from "react"
 import CreateProjectModal from "@/pages/admin/projects/modal"
 import AppLayout from '@/layouts/app-layout'
-import { 
-  Plus, 
-  Calendar, 
-  Clock, 
+import { SectionLabel, Eyebrow } from "@/components/manifest-ui"
+import {
+  Plus,
   ArrowRight,
+  ArrowUpRight,
+  ArrowDownRight,
   FolderKanban,
   Users,
-  TrendingUp,
   MoreVertical,
   CheckCircle2,
   Circle,
-  Key
+  Key,
+  Pencil,
+  Trash2,
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -50,9 +50,9 @@ interface Project {
 }
 
 export default function Index() {
-  const { projects: projectList, availableClientKeys, hasClientKeys } = usePage().props as unknown as { 
-    projects: Project[] 
-    availableClientKeys: {id: number, key: string}[]
+  const { projects: projectList, availableClientKeys, hasClientKeys } = usePage().props as unknown as {
+    projects: Project[]
+    availableClientKeys: { id: number; key: string }[]
     hasClientKeys: boolean
   }
 
@@ -60,103 +60,59 @@ export default function Index() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
 
-  // If no client keys exist, show warning message
+  // ---------- No client keys state ----------
   if (!hasClientKeys) {
     return (
       <AppLayout>
         <Head title="Projects" />
-        <div className="min-h-screen">
-          <div className="container mx-auto p-6 lg:p-8">
-            <div className="flex flex-col items-center justify-center h-[70vh] text-center">
-              <div className="rounded-full bg-amber-500/10 p-6 mb-6">
-                <Key className="w-16 h-16 text-amber-500" />
-              </div>
-              <h1 className="text-2xl font-bold mb-3">No Client Keys Found</h1>
-              <p className="text-sm text-muted-foreground mb-6 max-w-md">
-                You need to generate at least one client key before creating or managing projects.
-              </p>
-              <Button onClick={() => router.visit('/admin/client-keys')} className="gap-2">
-                <Key className="h-4 w-4" />
-                Go to Client Key Management
-              </Button>
-            </div>
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <div className="flex max-w-md flex-col items-center border border-border p-10 text-center">
+            <Key className="mb-6 h-10 w-10 text-muted-foreground" strokeWidth={1.25} />
+            <p className="mb-1 font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+              Prerequisite Missing
+            </p>
+            <h1 className="mb-3 text-xl font-semibold tracking-tight text-foreground">No Client Keys Found</h1>
+            <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+              You need at least one client key before creating or managing projects.
+            </p>
+            <Button
+              onClick={() => router.visit('/admin/client-keys')}
+              className="gap-2 rounded-none"
+            >
+              <Key className="h-4 w-4" />
+              Go to Client Key Management
+            </Button>
           </div>
         </div>
       </AppLayout>
     )
   }
 
-  const priorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case "high":
-        return "bg-red-500/10 text-red-400 border-red-500/20"
-      case "medium":
-        return "bg-amber-500/10 text-amber-400 border-amber-500/20"
-      case "low":
-        return "bg-blue-500/10 text-blue-400 border-blue-500/20"
-      default:
-        return "bg-slate-500/10 text-slate-400 border-slate-500/20"
-    }
-  }
-
-  const statusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "completed":
-        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-      case "in_progress":
-        return "bg-amber-500/10 text-amber-400 border-amber-500/20"
-      case "on_hold":
-        return "bg-orange-500/10 text-orange-400 border-orange-500/20"
-      case "planned":
-        return "bg-blue-500/10 text-blue-400 border-blue-500/20"
-      default:
-        return "bg-slate-500/10 text-slate-400 border-slate-500/20"
-    }
-  }
+  // ---------- Status / priority read as ledger marks, not colored pills ----------
+  // Ink rule: black for normal states, red ("red ink") reserved for on_hold / high priority only.
+  const isRedInk = (value: string) => ["high", "on_hold"].includes(value.toLowerCase())
 
   const formatDate = (date: string) => {
     if (!date) return "Not set"
-    return new Date(date).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
+    return new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   }
 
   const formatStatus = (status: string) =>
-    status
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ")
+    status.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
 
-  const handleViewDetails = (projectId: number) => {
-    router.visit(`/admin/projects/${projectId}`)
-  }
+  const handleViewDetails = (projectId: number) => router.visit(`/admin/projects/${projectId}`)
 
   const handleStatusChange = (projectId: number, newStatus: string) => {
     router.put(
       projects.update.url({ project: projectId }),
       { status: newStatus, _method: "PUT" },
-      {
-        preserveScroll: true,
-        onSuccess: () => {
-          // Optional: Show success message
-        },
-      }
+      { preserveScroll: true }
     )
   }
 
-  const handleMarkAsCompleted = (projectId: number) => {
-    handleStatusChange(projectId, "completed")
-  }
-
-  const handleMarkAsInProgress = (projectId: number) => {
-    handleStatusChange(projectId, "in_progress")
-  }
-
-  const handleEdit = (projectId: number) => {
-    router.visit(projects.edit.url({ project: projectId }))
-  }
+  const handleMarkAsCompleted = (projectId: number) => handleStatusChange(projectId, "completed")
+  const handleMarkAsInProgress = (projectId: number) => handleStatusChange(projectId, "in_progress")
+  const handleEdit = (projectId: number) => router.visit(projects.edit.url({ project: projectId }))
 
   const handleDelete = (project: Project) => {
     setProjectToDelete(project)
@@ -170,9 +126,6 @@ export default function Index() {
         setDeleteDialogOpen(false)
         setProjectToDelete(null)
       },
-      onError: () => {
-        // Optional: handle error
-      },
     })
   }
 
@@ -181,287 +134,218 @@ export default function Index() {
     setProjectToDelete(null)
   }
 
+  // ---------- Ledger stat row (matches dashboard) ----------
+  const LedgerStat = ({
+    index,
+    label,
+    value,
+    icon: Icon,
+    redInk,
+  }: {
+    index: string
+    label: string
+    value: number
+    icon: React.ElementType
+    redInk?: boolean
+  }) => (
+    <div className="border border-border p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-baseline gap-3">
+          <span className="font-mono text-[10px] text-muted-foreground">{index}</span>
+          <span className="font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">{label}</span>
+        </div>
+        <Icon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
+      </div>
+      <span className={`font-mono text-3xl font-semibold tabular-nums ${redInk ? "text-destructive" : "text-foreground"}`}>
+        {String(value).padStart(2, "0")}
+      </span>
+    </div>
+  )
+
+  // ---------- Tick meter for per-project progress (replaces rounded Progress bar) ----------
+  const TickBar = ({ progress }: { progress: number }) => {
+    const ticks = 24
+    const filled = Math.round((progress / 100) * ticks)
+    return (
+      <div className="flex h-3 items-end gap-[2px]">
+        {Array.from({ length: ticks }).map((_, i) => (
+          <div
+            key={i}
+            className={`flex-1 ${i % 4 === 0 ? "h-full" : "h-2/3"} ${i < filled ? "bg-foreground" : "bg-border"}`}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  const totalCount = projectList.length
+  const activeCount = projectList.filter((p) => p.status === "in_progress").length
+  const completedCount = projectList.filter((p) => p.status === "completed").length
+  const plannedCount = projectList.filter((p) => p.status === "planned").length
+
   return (
     <AppLayout>
       <Head title="Projects" />
 
-      <div className="min-h-screen">
-        <div className="container mx-auto p-6 lg:p-8 space-y-6">
-          {/* Header */}
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-6 border-b border-border/50">
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-[1400px] p-6 lg:p-8 space-y-3">
+          {/* Masthead */}
+          <div className="flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
-              <p className="text-muted-foreground text-sm mt-1">
-                Manage and track all your projects
+              <Eyebrow>daily manifest</Eyebrow>
+              <h1 className="mt-1 text-3xl font-semibold tracking-tight text-foreground">Projects</h1>
+              <p className="mt-1 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                Manage and track all engagements
               </p>
             </div>
-            <Button 
-              onClick={() => setOpen(true)}
-              className="gap-2"
-            >
+            <Button onClick={() => setOpen(true)} className="gap-2 rounded-none">
               <Plus className="h-4 w-4" />
               Create Project
             </Button>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="text-sm font-medium">Total Projects</div>
-                <FolderKanban className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{projectList.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  All projects
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="text-sm font-medium">Active</div>
-                <TrendingUp className="h-4 w-4 text-amber-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-amber-600">
-                  {projectList.filter(p => p.status === 'in_progress').length}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  In progress
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="text-sm font-medium">Completed</div>
-                <Calendar className="h-4 w-4 text-emerald-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-emerald-600">
-                  {projectList.filter(p => p.status === 'completed').length}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Successfully finished
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="text-sm font-medium">Planned</div>
-                <Clock className="h-4 w-4 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
-                  {projectList.filter(p => p.status === 'planned').length}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Upcoming projects
-                </p>
-              </CardContent>
-            </Card>
+          {/* Stat ledger */}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <LedgerStat index="01" label="Total Projects" value={totalCount} icon={FolderKanban} />
+            <LedgerStat index="02" label="In Progress" value={activeCount} icon={ArrowUpRight} />
+            <LedgerStat index="03" label="Completed" value={completedCount} icon={CheckCircle2} />
+            <LedgerStat index="04" label="Planned" value={plannedCount} icon={ArrowDownRight} />
           </div>
 
-          {/* Project Cards Grid */}
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Project register — a numbered list, since these rows are a real queue */}
+          <div className="border border-border">
             {projectList.length === 0 ? (
-              <div className="col-span-full">
-                <Card>
-                  <CardContent className="text-center py-16 text-muted-foreground">
-                    <FolderKanban className="w-16 h-16 opacity-30 mx-auto mb-4" />
-                    <p className="text-sm mb-4">No projects yet</p>
-                    <Button onClick={() => setOpen(true)} variant="outline" className="gap-2">
-                      <Plus className="h-4 w-4" />
-                      Create your first project
-                    </Button>
-                  </CardContent>
-                </Card>
+              <div className="flex flex-col items-center py-20 text-center">
+                <FolderKanban className="mb-4 h-10 w-10 text-muted-foreground" strokeWidth={1.25} />
+                <p className="mb-4 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+                  No projects yet
+                </p>
+                <Button onClick={() => setOpen(true)} variant="outline" className="gap-2 rounded-none">
+                  <Plus className="h-4 w-4" />
+                  Create your first project
+                </Button>
               </div>
             ) : (
-              projectList.map((project) => (
-                <Card
+              projectList.map((project, i) => (
+                <div
                   key={project.id}
-                  className="hover:bg-background/50 transition-all group"
+                  className="grid grid-cols-1 gap-4 border-b border-border p-6 last:border-b-0 md:grid-cols-[2.5rem_1fr_auto] md:items-center"
                 >
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 
-                          className="font-semibold text-foreground text-base mb-2 line-clamp-2 group-hover:text-primary transition-colors cursor-pointer"
-                          onClick={() => handleViewDetails(project.id)}
-                        >
-                          {project.name}
-                        </h3>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline" className={`${statusColor(project.status)} border text-[10px] px-2 py-0.5`}>
-                            {formatStatus(project.status)}
-                          </Badge>
-                          <Badge variant="outline" className={`${priorityColor(project.priority)} border text-[10px] px-2 py-0.5`}>
-                            {project.priority}
-                          </Badge>
-                        </div>
-                      </div>
-                      
-                      {/* Dropdown Menu */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="text-muted-foreground hover:text-foreground transition-colors">
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => handleViewDetails(project.id)}>
-                            <ArrowRight className="w-4 h-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEdit(project.id)}>
-                            <svg 
-                              className="w-4 h-4 mr-2" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Edit Project
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          {project.status !== "completed" ? (
-                            <DropdownMenuItem 
-                              onClick={() => handleMarkAsCompleted(project.id)}
-                              className="text-emerald-600"
-                            >
-                              <CheckCircle2 className="w-4 h-4 mr-2" />
-                              Mark as Completed
-                            </DropdownMenuItem>
-                          ) : (
-                            <DropdownMenuItem 
-                              onClick={() => handleMarkAsInProgress(project.id)}
-                              className="text-amber-600"
-                            >
-                              <Circle className="w-4 h-4 mr-2" />
-                              Mark as In Progress
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => handleDelete(project)}
-                            className="text-red-600"
-                          >
-                            <svg 
-                              className="w-4 h-4 mr-2" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Delete Project
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                  {/* Index */}
+                  <span className="font-mono text-xs text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+
+                  {/* Main */}
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <h3
+                        className="cursor-pointer text-base font-semibold tracking-tight text-foreground hover:underline"
+                        onClick={() => handleViewDetails(project.id)}
+                      >
+                        {project.name}
+                      </h3>
+                      <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                        <span
+                          className={`h-1.5 w-1.5 ${
+                            project.status === "completed" ? "bg-foreground" : "border border-muted-foreground bg-transparent"
+                          }`}
+                        />
+                        {formatStatus(project.status)}
+                      </span>
+                      <span
+                        className={`font-mono text-[10px] uppercase tracking-widest ${
+                          isRedInk(project.priority) ? "text-destructive" : "text-muted-foreground"
+                        }`}
+                      >
+                        {project.priority} priority
+                      </span>
                     </div>
 
-                    {/* Description */}
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
+                    <p className="mt-1.5 line-clamp-1 text-sm text-muted-foreground">
                       {project.description || "No description provided."}
                     </p>
 
-                    {/* Progress Bar (if available) */}
-                    {project.progress !== undefined && (
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between text-xs mb-2">
-                          <span className="text-muted-foreground">{project.tasks_count || 0} Tasks</span>
-                          <span className="text-foreground font-semibold">{project.progress}%</span>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-700 ${
-                              project.progress >= 75 
-                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500' 
-                                : project.progress >= 50 
-                                ? 'bg-gradient-to-r from-amber-500 to-orange-500'
-                                : 'bg-gradient-to-r from-red-500 to-rose-500'
-                            }`}
-                            style={{ width: `${project.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between pt-4 border-t border-border/50">
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {formatDate(project.due_date)}
-                        </span>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleViewDetails(project.id)}
-                        className="gap-1 h-8 text-xs hover:text-primary group/btn"
-                      >
-                        View Details
-                        <ArrowRight className="w-3 h-3 group-hover/btn:translate-x-1 transition-transform" />
-                      </Button>
+                    <div className="mt-3 grid max-w-md grid-cols-[1fr_auto] items-center gap-3">
+                      <TickBar progress={project.progress ?? 0} />
+                      <span className="font-mono text-[11px] tabular-nums text-foreground">
+                        {project.progress ?? 0}%
+                      </span>
                     </div>
 
-                    {/* Team Members */}
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
-                      <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                      <div className="flex -space-x-2">
-                        {/* Admin Avatar */}
-                        <div 
-                          className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 border-2 border-background flex items-center justify-center text-white text-[10px] font-medium"
-                          title="Admin"
-                        >
-                          A
-                        </div>
-                        {/* Client User Avatar */}
-                        <div 
-                          className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 border-2 border-background flex items-center justify-center text-white text-[10px] font-medium"
-                          title="Client"
-                        >
-                          C
-                        </div>
-                      </div>
-                      <span className="text-xs text-muted-foreground">2 members</span>
+                    <div className="mt-3 flex flex-wrap items-center gap-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                      <span>{project.tasks_count || 0} tasks</span>
+                      <span>Due {formatDate(project.due_date)}</span>
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />2 members
+                      </span>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 justify-self-start md:justify-self-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleViewDetails(project.id)}
+                      className="gap-1 rounded-none text-xs hover:text-foreground"
+                    >
+                      View
+                      <ArrowRight className="h-3 w-3" />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1 text-muted-foreground hover:text-foreground">
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48 rounded-none">
+                        <DropdownMenuItem onClick={() => handleViewDetails(project.id)}>
+                          <ArrowRight className="mr-2 h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEdit(project.id)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit Project
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        {project.status !== "completed" ? (
+                          <DropdownMenuItem onClick={() => handleMarkAsCompleted(project.id)}>
+                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                            Mark as Completed
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem onClick={() => handleMarkAsInProgress(project.id)}>
+                            <Circle className="mr-2 h-4 w-4" />
+                            Mark as In Progress
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => handleDelete(project)} className="text-destructive">
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete Project
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
               ))
             )}
           </div>
         </div>
       </div>
 
-      {/* Modal */}
-       <CreateProjectModal 
-        open={open} 
-        setOpen={setOpen} 
-        availableClientKeys={availableClientKeys} 
-      />
+      <CreateProjectModal open={open} setOpen={setOpen} availableClientKeys={availableClientKeys} />
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-none">
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogTitle className="font-mono text-sm uppercase tracking-widest">Confirm Deletion</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete the project "{projectToDelete?.name}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700"
-            >
+            <AlertDialogCancel onClick={cancelDelete} className="rounded-none">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="rounded-none bg-destructive hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

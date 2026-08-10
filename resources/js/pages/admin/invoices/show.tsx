@@ -3,7 +3,6 @@ import { router, Link } from "@inertiajs/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -13,22 +12,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { 
-  ArrowLeft, 
-  Printer, 
-  Download, 
-  Trash2, 
-  Edit, 
-  Mail, 
-  Copy, 
+import {
+  ArrowLeft,
+  Printer,
+  Download,
+  Trash2,
+  Edit,
+  Mail,
+  Copy,
   CreditCard,
   FileText,
   Calendar,
-  DollarSign
+  DollarSign,
 } from "lucide-react";
 import AppLayout from "@/layouts/app-layout";
-import invoices from "@/routes/admin/invoices/index";
-import { index } from "@/routes/admin/projects";
 
 type ClientKey = {
   id: number;
@@ -82,7 +79,6 @@ type Props = {
   items: InvoiceItem[];
   isAdmin?: boolean;
 };
-
 
 export default function InvoiceShow({ invoice, clientKey, payments = [], items = [], isAdmin = false }: Props) {
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -145,14 +141,13 @@ export default function InvoiceShow({ invoice, clientKey, payments = [], items =
     const wasUnpaid = invoice.status !== 'paid';
     const nowPaid = editForm.status === 'paid';
     const hasBalance = balance > 0;
-    
-    // Warn user if marking as paid with outstanding balance
+
     if (wasUnpaid && nowPaid && hasBalance) {
       if (!confirm(`This will mark the invoice as paid and automatically record a payment of ${formatCurrency(balance)}. Continue?`)) {
         return;
       }
     }
-    
+
     router.post(`/admin/invoices/${invoice.id}`, {
       ...editForm,
       _method: 'PUT'
@@ -208,31 +203,21 @@ export default function InvoiceShow({ invoice, clientKey, payments = [], items =
     window.print();
   };
 
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      paid: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-      unpaid: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-      overdue: 'bg-red-500/10 text-red-400 border-red-500/20',
-      cancelled: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
-      partially_paid: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    };
-    return colors[status] || 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+  const getStatusVariant = (status: string): "default" | "outline" | "secondary" => {
+    if (status === "overdue") return "default";
+    if (status === "paid") return "secondary";
+    return "outline";
   };
 
   return (
     <AppLayout>
-      <div className="min-h-screen">
-        <div className="max-w-5xl mx-auto p-6 space-y-6">
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-5xl space-y-6 p-6">
           {/* Header Actions */}
           <div className="flex items-center justify-between print:hidden">
-            <Link
-              href={
-                isAdmin ? "/admin/invoices"
-                  : "/admin/invoices"
-              }
-            >
-              <Button variant="ghost" size="sm" className="rounded-xl">
-                <ArrowLeft className="w-4 h-4 mr-2" />
+            <Link href="/admin/invoices">
+              <Button variant="ghost" size="sm" className="gap-2 rounded-none">
+                <ArrowLeft className="h-4 w-4" />
                 Back to Invoices
               </Button>
             </Link>
@@ -240,61 +225,67 @@ export default function InvoiceShow({ invoice, clientKey, payments = [], items =
             <div className="flex gap-2">
               {isAdmin && (
                 <>
-                  <Button variant="outline" size="sm" onClick={handlePrint} className="rounded-xl">
-                    <Printer className="w-4 h-4 mr-2" />
+                  <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2 rounded-none border-border">
+                    <Printer className="h-4 w-4" />
                     Print
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleDownloadPdf} className="rounded-xl">
-                    <Download className="w-4 h-4 mr-2" />
+                  <Button variant="outline" size="sm" onClick={handleDownloadPdf} className="gap-2 rounded-none border-border">
+                    <Download className="h-4 w-4" />
                     Download PDF
                   </Button>
                   {clientKey?.email && (
-                    <Button variant="outline" size="sm" onClick={handleSendEmail} className="rounded-xl">
-                      <Mail className="w-4 h-4 mr-2" />
+                    <Button variant="outline" size="sm" onClick={handleSendEmail} className="gap-2 rounded-none border-border">
+                      <Mail className="h-4 w-4" />
                       Send Email
                     </Button>
                   )}
-                  <Button variant="outline" size="sm" onClick={handleDuplicate} className="rounded-xl">
-                    <Copy className="w-4 h-4 mr-2" />
+                  <Button variant="outline" size="sm" onClick={handleDuplicate} className="gap-2 rounded-none border-border">
+                    <Copy className="h-4 w-4" />
                     Duplicate
                   </Button>
                   <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="rounded-xl">
-                        <Edit className="w-4 h-4 mr-2" />
+                      <Button variant="outline" size="sm" className="gap-2 rounded-none border-border">
+                        <Edit className="h-4 w-4" />
                         Edit
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="rounded-none border-border">
                       <DialogHeader>
                         <DialogTitle>Edit Invoice</DialogTitle>
-                        <DialogDescription>
-                          Update invoice details
-                        </DialogDescription>
+                        <DialogDescription>Update invoice details</DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium mb-2">Invoice Date</label>
+                          <label className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                            Invoice Date
+                          </label>
                           <Input
                             type="date"
                             value={editForm.invoice_date}
                             onChange={(e) => setEditForm({ ...editForm, invoice_date: e.target.value })}
+                            className="rounded-none border-border"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-2">Due Date</label>
+                          <label className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                            Due Date
+                          </label>
                           <Input
                             type="date"
                             value={editForm.due_date}
                             onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })}
+                            className="rounded-none border-border"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-2">Status</label>
+                          <label className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                            Status
+                          </label>
                           <select
                             value={editForm.status}
                             onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                            className="w-full px-3 py-2 border rounded-md bg-background"
+                            className="w-full rounded-none border border-border bg-background px-3 py-2 text-sm text-foreground"
                           >
                             <option value="unpaid">Unpaid</option>
                             <option value="paid">Paid</option>
@@ -303,26 +294,34 @@ export default function InvoiceShow({ invoice, clientKey, payments = [], items =
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-2">Notes</label>
+                          <label className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                            Notes
+                          </label>
                           <Textarea
                             value={editForm.notes}
                             onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
                             rows={3}
+                            className="rounded-none border-border"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-2">Internal Notes</label>
+                          <label className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                            Internal Notes
+                          </label>
                           <Textarea
                             value={editForm.internal_notes}
                             onChange={(e) => setEditForm({ ...editForm, internal_notes: e.target.value })}
                             rows={3}
+                            className="rounded-none border-border"
                           />
                         </div>
                         <div className="flex justify-end gap-2">
-                          <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+                          <Button variant="outline" onClick={() => setShowEditDialog(false)} className="rounded-none border-border">
                             Cancel
                           </Button>
-                          <Button onClick={handleUpdate}>Save Changes</Button>
+                          <Button onClick={handleUpdate} className="rounded-none bg-foreground text-background hover:bg-foreground/90">
+                            Save Changes
+                          </Button>
                         </div>
                       </div>
                     </DialogContent>
@@ -331,9 +330,9 @@ export default function InvoiceShow({ invoice, clientKey, payments = [], items =
                     variant="outline"
                     size="sm"
                     onClick={handleDelete}
-                    className="text-red-600 hover:text-red-700 hover:border-red-300 rounded-xl"
+                    className="gap-2 rounded-none border-border text-muted-foreground hover:text-foreground"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
+                    <Trash2 className="h-4 w-4" />
                     Delete
                   </Button>
                 </>
@@ -341,357 +340,340 @@ export default function InvoiceShow({ invoice, clientKey, payments = [], items =
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Main Invoice Content */}
-            <div className="lg:col-span-2 space-y-6">
-              <Card className="print:shadow-none print:border-0">
-                <CardContent className="p-8">
-                  {/* Invoice Header */}
-                  <div className="border-b pb-6 mb-6">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h1 className="text-4xl font-bold mb-2">INVOICE</h1>
-                        <div className="text-sm text-muted-foreground space-y-1">
+            <div className="space-y-6 lg:col-span-2">
+              <div className="border border-border p-8 print:border-0">
+                {/* Invoice Header */}
+                <div className="mb-6 border-b border-border pb-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h1 className="mb-3 text-3xl font-semibold tracking-tight text-foreground">Invoice</h1>
+                      <div className="space-y-1 font-mono text-xs text-muted-foreground">
+                        <p>
+                          <span className="uppercase tracking-wider">No.</span> {invoice.invoice_number}
+                        </p>
+                        <p>
+                          <span className="uppercase tracking-wider">Date</span> {formatDate(invoice.invoice_date)}
+                        </p>
+                        <p>
+                          <span className="uppercase tracking-wider">Due</span> {formatDate(invoice.due_date)}
+                        </p>
+                        {invoice.payment_terms && (
                           <p>
-                            <span className="font-medium">Invoice #:</span>{" "}
-                            {invoice.invoice_number}
+                            <span className="uppercase tracking-wider">Terms</span> {invoice.payment_terms}
                           </p>
-                          <p>
-                            <span className="font-medium">Date:</span>{" "}
-                            {formatDate(invoice.invoice_date)}
-                          </p>
-                          <p>
-                            <span className="font-medium">Due Date:</span>{" "}
-                            {formatDate(invoice.due_date)}
-                          </p>
-                          {invoice.payment_terms && (
-                            <p>
-                              <span className="font-medium">Terms:</span>{" "}
-                              {invoice.payment_terms}
-                            </p>
-                          )}
-                        </div>
+                        )}
                       </div>
+                    </div>
 
-                      <div className="text-right">
-                        <Badge className={`${getStatusColor(invoice.status)} border text-xs px-3 py-1`}>
-                          {invoice.status.toUpperCase().replace('_', ' ')}
-                        </Badge>
-                      </div>
+                    <Badge variant={getStatusVariant(invoice.status)} className="rounded-none font-mono text-[10px] uppercase tracking-wider">
+                      {invoice.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Client Information */}
+                {clientKey && (
+                  <div className="mb-8">
+                    <h2 className="mb-2 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                      Billed To
+                    </h2>
+                    <div>
+                      <p className="text-base font-semibold text-foreground">{clientKey.name}</p>
+                      {clientKey.company && <p className="text-sm text-muted-foreground">{clientKey.company}</p>}
+                      {clientKey.email && <p className="text-sm text-muted-foreground">{clientKey.email}</p>}
+                      {clientKey.phone && <p className="text-sm text-muted-foreground">{clientKey.phone}</p>}
+                      {clientKey.address && <p className="mt-1 text-sm text-muted-foreground">{clientKey.address}</p>}
                     </div>
                   </div>
+                )}
 
-                  {/* Client Information */}
-                  {clientKey && (
-                    <div className="mb-8">
-                      <h2 className="text-sm font-semibold text-muted-foreground mb-2">
-                        BILLED TO
-                      </h2>
-                      <div>
-                        <p className="text-lg font-semibold">{clientKey.name}</p>
-                        {clientKey.company && (
-                          <p className="text-sm text-muted-foreground">{clientKey.company}</p>
-                        )}
-                        {clientKey.email && (
-                          <p className="text-sm text-muted-foreground">{clientKey.email}</p>
-                        )}
-                        {clientKey.phone && (
-                          <p className="text-sm text-muted-foreground">{clientKey.phone}</p>
-                        )}
-                        {clientKey.address && (
-                          <p className="text-sm text-muted-foreground mt-1">{clientKey.address}</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Invoice Items */}
-                  <div className="mb-8">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 text-sm font-semibold">Description</th>
-                          <th className="text-center py-3 text-sm font-semibold">Qty</th>
-                          <th className="text-right py-3 text-sm font-semibold">Rate</th>
-                          <th className="text-right py-3 text-sm font-semibold">Amount</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {items && items.length > 0 ? (
-                          items.map((item, index) => (
-                            <tr key={index} className="border-b">
-                              <td className="py-4">{item.description}</td>
-                              <td className="py-4 text-center">{item.quantity}</td>
-                              <td className="py-4 text-right">{formatCurrency(item.rate)}</td>
-                              <td className="py-4 text-right font-semibold">
-                                {formatCurrency(item.quantity * item.rate)}
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td className="py-4" colSpan={3}>Service Fee</td>
-                            <td className="py-4 text-right font-semibold">
-                              {formatCurrency(invoice.subtotal || invoice.amount)}
+                {/* Invoice Items */}
+                <div className="mb-8">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="py-3 text-left font-mono text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Description
+                        </th>
+                        <th className="py-3 text-center font-mono text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Qty
+                        </th>
+                        <th className="py-3 text-right font-mono text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Rate
+                        </th>
+                        <th className="py-3 text-right font-mono text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Amount
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items && items.length > 0 ? (
+                        items.map((item, index) => (
+                          <tr key={index} className="border-b border-border">
+                            <td className="py-4 text-sm text-foreground">{item.description}</td>
+                            <td className="py-4 text-center font-mono text-sm tabular-nums text-foreground">{item.quantity}</td>
+                            <td className="py-4 text-right font-mono text-sm tabular-nums text-foreground">{formatCurrency(item.rate)}</td>
+                            <td className="py-4 text-right font-mono text-sm font-semibold tabular-nums text-foreground">
+                              {formatCurrency(item.quantity * item.rate)}
                             </td>
                           </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                        ))
+                      ) : (
+                        <tr className="border-b border-border">
+                          <td className="py-4 text-sm text-foreground" colSpan={3}>Service Fee</td>
+                          <td className="py-4 text-right font-mono text-sm font-semibold tabular-nums text-foreground">
+                            {formatCurrency(invoice.subtotal || invoice.amount)}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
-                  {/* Totals */}
-                  <div className="flex justify-end">
-                    <div className="w-64 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Subtotal:</span>
-                        <span>{formatCurrency(invoice.subtotal || invoice.amount)}</span>
+                {/* Totals */}
+                <div className="flex justify-end">
+                  <div className="w-64 space-y-2">
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Subtotal</span>
+                      <span className="font-mono tabular-nums">{formatCurrency(invoice.subtotal || invoice.amount)}</span>
+                    </div>
+                    {invoice.tax_rate > 0 && (
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Tax ({invoice.tax_rate}%)</span>
+                        <span className="font-mono tabular-nums">{formatCurrency(invoice.tax_amount)}</span>
                       </div>
-                      {invoice.tax_rate > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span>Tax ({invoice.tax_rate}%):</span>
-                          <span>{formatCurrency(invoice.tax_amount)}</span>
-                        </div>
-                      )}
-                      {parseFloat(String(invoice.discount)) > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span>Discount:</span>
-                          <span>-{formatCurrency(invoice.discount)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between font-bold text-lg pt-2 border-t">
-                        <span>Total:</span>
-                        <span>{formatCurrency(invoice.amount)}</span>
+                    )}
+                    {parseFloat(String(invoice.discount)) > 0 && (
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Discount</span>
+                        <span className="font-mono tabular-nums">-{formatCurrency(invoice.discount)}</span>
                       </div>
-                      {payments.length > 0 && (
-                        <>
-                          <div className="flex justify-between text-sm text-green-600">
-                            <span>Paid:</span>
-                            <span>-{formatCurrency(totalPaid)}</span>
-                          </div>
-                          <div className="flex justify-between font-bold text-lg border-t pt-2">
-                            <span>Balance:</span>
-                            <span className={balance > 0 ? "text-red-600" : "text-green-600"}>
-                              {formatCurrency(balance)}
-                            </span>
-                          </div>
-                        </>
-                      )}
+                    )}
+                    <div className="flex justify-between border-t border-border pt-2 text-lg font-semibold text-foreground">
+                      <span>Total</span>
+                      <span className="font-mono tabular-nums">{formatCurrency(invoice.amount)}</span>
                     </div>
+                    {payments.length > 0 && (
+                      <>
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <span>Paid</span>
+                          <span className="font-mono tabular-nums">-{formatCurrency(totalPaid)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-border pt-2 text-lg font-semibold text-foreground">
+                          <span>Balance</span>
+                          <span className="font-mono tabular-nums">{formatCurrency(balance)}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
+                </div>
 
-                  {/* Notes */}
-                  {invoice.notes && (
-                    <div className="mt-8 pt-6 border-t">
-                      <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-                        NOTES
-                      </h3>
-                      <p className="text-sm whitespace-pre-wrap">{invoice.notes}</p>
-                    </div>
-                  )}
-
-                  {/* Internal Notes (Admin Only) */}
-                  {isAdmin && invoice.internal_notes && (
-                    <div className="mt-6 p-4 bg-muted/50 rounded-lg print:hidden">
-                      <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-                        INTERNAL NOTES (Private)
-                      </h3>
-                      <p className="text-sm whitespace-pre-wrap">{invoice.internal_notes}</p>
-                    </div>
-                  )}
-
-                  {/* Footer Info */}
-                  <div className="mt-8 pt-6 border-t text-xs text-muted-foreground space-y-1">
-                    <p>Created: {formatDateTime(invoice.created_at)}</p>
-                    <p>Last Updated: {formatDateTime(invoice.updated_at)}</p>
+                {/* Notes */}
+                {invoice.notes && (
+                  <div className="mt-8 border-t border-border pt-6">
+                    <h3 className="mb-2 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Notes</h3>
+                    <p className="whitespace-pre-wrap text-sm text-foreground">{invoice.notes}</p>
                   </div>
-                </CardContent>
-              </Card>
+                )}
+
+                {/* Internal Notes (Admin Only) */}
+                {isAdmin && invoice.internal_notes && (
+                  <div className="mt-6 border border-border p-4 print:hidden">
+                    <h3 className="mb-2 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                      Internal Notes (Private)
+                    </h3>
+                    <p className="whitespace-pre-wrap text-sm text-foreground">{invoice.internal_notes}</p>
+                  </div>
+                )}
+
+                {/* Footer Info */}
+                <div className="mt-8 space-y-1 border-t border-border pt-6 font-mono text-[10px] text-muted-foreground">
+                  <p>Created {formatDateTime(invoice.created_at)}</p>
+                  <p>Last Updated {formatDateTime(invoice.updated_at)}</p>
+                </div>
+              </div>
             </div>
 
             {/* Sidebar */}
             <div className="space-y-6 print:hidden">
               {/* Payment Summary */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <DollarSign className="w-5 h-5" />
-                    Payment Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total Amount:</span>
-                      <span className="font-semibold">{formatCurrency(invoice.amount)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Amount Paid:</span>
-                      <span className="font-semibold text-green-600">{formatCurrency(totalPaid)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm pt-2 border-t">
-                      <span className="font-medium">Balance Due:</span>
-                      <span className={`font-bold ${balance > 0 ? "text-red-600" : "text-green-600"}`}>
-                        {formatCurrency(balance)}
-                      </span>
-                    </div>
+              <div className="border border-border p-6">
+                <h3 className="mb-5 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                  <DollarSign className="h-4 w-4" />
+                  Payment Summary
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total Amount</span>
+                    <span className="font-mono font-semibold tabular-nums text-foreground">{formatCurrency(invoice.amount)}</span>
                   </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Amount Paid</span>
+                    <span className="font-mono font-semibold tabular-nums text-foreground">{formatCurrency(totalPaid)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border pt-2 text-sm">
+                    <span className="font-medium text-foreground">Balance Due</span>
+                    <span className="font-mono font-bold tabular-nums text-foreground">{formatCurrency(balance)}</span>
+                  </div>
+                </div>
 
-                  {isAdmin && balance > 0 && (
-                    <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-                      <DialogTrigger asChild>
-                        <Button className="w-full rounded-xl">
-                          <CreditCard className="w-4 h-4 mr-2" />
-                          Record Payment
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Record Payment</DialogTitle>
-                          <DialogDescription>
-                            Record a payment for this invoice
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium mb-2">Amount *</label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              value={paymentForm.amount}
-                              onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Balance: {formatCurrency(balance)}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-2">Payment Date *</label>
-                            <Input
-                              type="date"
-                              value={paymentForm.payment_date}
-                              onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-2">Payment Method *</label>
-                            <select
-                              value={paymentForm.payment_method}
-                              onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
-                              className="w-full px-3 py-2 border rounded-md bg-background"
-                            >
-                              <option value="bank_transfer">Bank Transfer</option>
-                              <option value="cash">Cash</option>
-                              <option value="check">Check</option>
-                              <option value="credit_card">Credit Card</option>
-                              <option value="paypal">PayPal</option>
-                              <option value="other">Other</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-2">Reference Number</label>
-                            <Input
-                              type="text"
-                              placeholder="Transaction ID or Check #"
-                              value={paymentForm.reference_number}
-                              onChange={(e) => setPaymentForm({ ...paymentForm, reference_number: e.target.value })}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-2">Notes</label>
-                            <Textarea
-                              placeholder="Payment notes..."
-                              value={paymentForm.notes}
-                              onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
-                              rows={3}
-                            />
-                          </div>
-                          <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
-                              Cancel
-                            </Button>
-                            <Button onClick={handleRecordPayment}>Record Payment</Button>
-                          </div>
+                {isAdmin && balance > 0 && (
+                  <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+                    <DialogTrigger asChild>
+                      <Button className="mt-4 w-full gap-2 rounded-none bg-foreground text-background hover:bg-foreground/90">
+                        <CreditCard className="h-4 w-4" />
+                        Record Payment
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="rounded-none border-border">
+                      <DialogHeader>
+                        <DialogTitle>Record Payment</DialogTitle>
+                        <DialogDescription>Record a payment for this invoice</DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                            Amount *
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={paymentForm.amount}
+                            onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                            className="rounded-none border-border"
+                          />
+                          <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                            Balance: {formatCurrency(balance)}
+                          </p>
                         </div>
-                      </DialogContent>
-                    </Dialog>
-                  )}
-                </CardContent>
-              </Card>
+                        <div>
+                          <label className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                            Payment Date *
+                          </label>
+                          <Input
+                            type="date"
+                            value={paymentForm.payment_date}
+                            onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })}
+                            className="rounded-none border-border"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                            Payment Method *
+                          </label>
+                          <select
+                            value={paymentForm.payment_method}
+                            onChange={(e) => setPaymentForm({ ...paymentForm, payment_method: e.target.value })}
+                            className="w-full rounded-none border border-border bg-background px-3 py-2 text-sm text-foreground"
+                          >
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="cash">Cash</option>
+                            <option value="check">Check</option>
+                            <option value="credit_card">Credit Card</option>
+                            <option value="paypal">PayPal</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                            Reference Number
+                          </label>
+                          <Input
+                            type="text"
+                            placeholder="Transaction ID or Check #"
+                            value={paymentForm.reference_number}
+                            onChange={(e) => setPaymentForm({ ...paymentForm, reference_number: e.target.value })}
+                            className="rounded-none border-border"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-2 block font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                            Notes
+                          </label>
+                          <Textarea
+                            placeholder="Payment notes..."
+                            value={paymentForm.notes}
+                            onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+                            rows={3}
+                            className="rounded-none border-border"
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" onClick={() => setShowPaymentDialog(false)} className="rounded-none border-border">
+                            Cancel
+                          </Button>
+                          <Button onClick={handleRecordPayment} className="rounded-none bg-foreground text-background hover:bg-foreground/90">
+                            Record Payment
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
 
               {/* Payment History */}
               {payments.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <FileText className="w-5 h-5" />
-                      Payment History
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {payments.map((payment) => (
-                        <div key={payment.id} className="pb-4 border-b last:border-b-0 last:pb-0">
-                          <div className="flex justify-between items-start mb-1">
-                            <span className="font-semibold text-green-600">
-                              {formatCurrency(payment.amount)}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDate(payment.payment_date)}
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {payment.payment_method.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                          </p>
-                          {payment.reference_number && (
-                            <p className="text-xs text-muted-foreground">
-                              Ref: {payment.reference_number}
-                            </p>
-                          )}
-                          {payment.notes && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {payment.notes}
-                            </p>
-                          )}
+                <div className="border border-border p-6">
+                  <h3 className="mb-5 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    Payment History
+                  </h3>
+                  <div className="flex flex-col">
+                    {payments.map((payment, i) => (
+                      <div key={payment.id} className="border-b border-border py-4 first:pt-0 last:border-b-0 last:pb-0">
+                        <div className="mb-1 flex items-start justify-between">
+                          <span className="flex items-center gap-2 font-mono text-sm font-semibold tabular-nums text-foreground">
+                            <span className="text-[10px] text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                            {formatCurrency(payment.amount)}
+                          </span>
+                          <span className="font-mono text-[10px] text-muted-foreground">{formatDate(payment.payment_date)}</span>
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                        <p className="text-sm text-muted-foreground">
+                          {payment.payment_method.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </p>
+                        {payment.reference_number && (
+                          <p className="font-mono text-[10px] text-muted-foreground">Ref: {payment.reference_number}</p>
+                        )}
+                        {payment.notes && <p className="mt-1 text-xs text-muted-foreground">{payment.notes}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {/* Invoice Info */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Calendar className="w-5 h-5" />
-                    Invoice Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
+              <div className="border border-border p-6">
+                <h3 className="mb-5 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  Invoice Information
+                </h3>
+                <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Invoice Date:</span>
-                    <span className="font-medium">{formatDate(invoice.invoice_date)}</span>
+                    <span className="text-muted-foreground">Invoice Date</span>
+                    <span className="font-medium text-foreground">{formatDate(invoice.invoice_date)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Due Date:</span>
-                    <span className="font-medium">{formatDate(invoice.due_date)}</span>
+                    <span className="text-muted-foreground">Due Date</span>
+                    <span className="font-medium text-foreground">{formatDate(invoice.due_date)}</span>
                   </div>
                   {invoice.payment_terms && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Payment Terms:</span>
-                      <span className="font-medium">{invoice.payment_terms}</span>
+                      <span className="text-muted-foreground">Payment Terms</span>
+                      <span className="font-medium text-foreground">{invoice.payment_terms}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Status:</span>
-                    <Badge className={`${getStatusColor(invoice.status)} border text-xs`}>
-                      {invoice.status.toUpperCase().replace('_', ' ')}
+                    <span className="text-muted-foreground">Status</span>
+                    <Badge variant={getStatusVariant(invoice.status)} className="rounded-none font-mono text-[10px] uppercase tracking-wider">
+                      {invoice.status.replace('_', ' ')}
                     </Badge>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -2,13 +2,18 @@ import {
     SidebarGroup,
     SidebarGroupLabel,
     SidebarMenu,
+    SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 
-export function NavMain({ items = [] }: { items: NavItem[] }) {
+// Extended locally so this component doesn't force a change to the shared NavItem type.
+// If you'd rather have this globally, add `badge?: number` to NavItem in '@/types' instead.
+type NavItemWithBadge = NavItem & { badge?: number };
+
+export function NavMain({ items = [] }: { items: NavItemWithBadge[] }) {
     const page = usePage();
     return (
         <SidebarGroup className="px-2 py-0">
@@ -30,6 +35,11 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                 <span>{item.title}</span>
                             </Link>
                         </SidebarMenuButton>
+                        {typeof item.badge === 'number' && item.badge > 0 && (
+                            <SidebarMenuBadge>
+                                {item.badge > 99 ? '99+' : item.badge}
+                            </SidebarMenuBadge>
+                        )}
                     </SidebarMenuItem>
                 ))}
             </SidebarMenu>
