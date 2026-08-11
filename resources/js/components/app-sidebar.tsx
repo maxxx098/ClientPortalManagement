@@ -89,6 +89,13 @@ export function AppSidebar() {
     });
 
     if (isClient) {
+        console.log('Adding CLIENT proposal nav item');
+        mainNavItems.push({
+            title: 'Proposal',
+            href: '/client/proposals',
+            icon: PenBoxIcon,
+        });
+
         console.log('Adding CLIENT Tasks nav item');
         // Client Tasks Route
         mainNavItems.push({

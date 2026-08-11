@@ -57,7 +57,7 @@ export default function LeadShow({ lead }: { lead: Lead }) {
                                         preserveScroll: true,
                                         onSuccess: () => {
                                             router.visit(
-                                                `/admin/leads/${lead.id}`,
+                                                '/admin/leads?converted=1',
                                             );
                                         },
                                     },

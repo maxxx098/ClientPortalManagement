@@ -95,29 +95,7 @@ export default function ProposalCreate({
                     className="space-y-6 border border-border p-6"
                 >
                     <div className="grid gap-4 md:grid-cols-2">
-                        <label className="space-y-2 text-sm">
-                            <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                                Lead
-                            </span>
-                            <select
-                                value={form.lead_id}
-                                onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        lead_id: e.target.value,
-                                    })
-                                }
-                                className="w-full rounded-none border border-border bg-background px-3 py-2 text-sm"
-                                required
-                            >
-                                <option value="">Select lead</option>
-                                {(leads || []).map((lead) => (
-                                    <option key={lead.id} value={lead.id}>
-                                        {lead.company_name || lead.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
+
 
                         <label className="space-y-2 text-sm">
                             <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">

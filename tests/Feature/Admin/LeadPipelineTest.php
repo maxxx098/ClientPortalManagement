@@ -101,4 +101,54 @@ class LeadPipelineTest extends TestCase
         ]);
         $this->assertNotNull(OnboardingSession::where('client_key_id', $client->key)->value('kickoff_date'));
     }
+
+    public function test_client_can_view_their_proposal_and_lead_summary(): void
+    {
+        $lead = Lead::create([
+            'name' => 'Daria Blake',
+            'email' => 'daria@example.com',
+            'company_name' => 'Blake & Co',
+            'source' => 'Website',
+            'status' => 'won',
+        ]);
+
+        $client = ClientKey::create([
+            'key' => '11111111-1111-4111-8111-111111111111',
+            'locked' => false,
+            'used' => false,
+            'name' => 'Blake & Co',
+            'email' => 'daria@example.com',
+        ]);
+
+        OnboardingSession::create([
+            'lead_id' => $lead->id,
+            'client_key_id' => $client->key,
+            'status' => 'in_progress',
+            'started_at' => now(),
+        ]);
+
+        $proposal = Proposal::create([
+            'lead_id' => $lead->id,
+            'client_key_id' => $client->key,
+            'title' => 'Brand system proposal',
+            'total' => 3200.00,
+            'status' => 'sent',
+            'scope' => 'Brand design sprint',
+        ]);
+
+        $user = User::factory()->create([
+            'email' => 'client-' . $client->key . '@system.local',
+            'role' => 'client',
+            'is_admin' => false,
+        ]);
+
+        $this->actingAs($user);
+        session(['client_key_id' => $client->key, 'is_client' => true]);
+
+        $response = $this->get(route('client.proposals.index'));
+
+        $response->assertOk();
+        $response->assertSee($proposal->title);
+        $response->assertSee($lead->company_name);
+    }
 }

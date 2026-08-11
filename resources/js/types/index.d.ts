@@ -41,3 +41,59 @@ export interface User {
     updated_at: string;
     [key: string]: unknown; // This allows for additional properties...
 }
+export type TaskStatus = 'Todo' | 'In Development' | 'In Design' | 'In Review' | 'Completed';
+
+export type TaskPriority = 'Low' | 'Medium' | 'High' | 'Urgent';
+
+export type ViewType = 'board' | 'timeline' | 'list' | 'table' | 'analytics';
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  avatar: string;
+  email: string;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  projectId: string;
+  assignees: TeamMember[];
+  startDate: string; // e.g. "2026-12-14" or "14 Dec"
+  endDate: string;   // e.g. "2026-12-16" or "16 Dec"
+  progress: number;  // 0 - 100
+  tags: string[];
+  commentsCount?: number;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  category: string;
+  color: string;
+  taskCount: number;
+}
+
+export interface FeatureItem {
+  id: string;
+  iconName: string;
+  title: string;
+  description: string;
+  badge?: string;
+  highlightText?: string;
+}
+
+export interface PricingTier {
+  id: string;
+  name: string;
+  tagline: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  popular?: boolean;
+  features: string[];
+  ctaText: string;
+}

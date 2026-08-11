@@ -15,11 +15,12 @@ use App\Http\Controllers\CommentReactionController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
 use App\Http\Controllers\Client\InvoiceController as ClientInvoiceController;
+use App\Http\Controllers\ClientInviteController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('auth/login');
+    return Inertia::render('welcome');
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -125,6 +126,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 // CLIENT ONLY ROUTES
 // ============================================
 
+Route::get('/client/invite', [ClientInviteController::class, 'accept'])->name('client.invite');
+
 Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('client.')->group(function () {
     // Client Dashboard
     Route::get('/dashboard', [ClientDashboardController::class, 'index'])->name('dashboard');
@@ -138,6 +141,10 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
     Route::put('/projects/{project}', [ClientProjectController::class, 'update'])->name('projects.update');
     Route::patch('/projects/{project}', [ClientProjectController::class, 'update']);
     Route::delete('/projects/{project}', [ClientProjectController::class, 'destroy'])->name('projects.destroy');
+
+    // Client proposals and lead summary
+    Route::get('/proposals', [\App\Http\Controllers\Client\ClientProposalController::class, 'index'])->name('proposals.index');
+    Route::get('/proposals/{proposal}', [\App\Http\Controllers\Client\ClientProposalController::class, 'show'])->name('proposals.show');
 
     // Client Tasks (filtered by client_key_id)
     Route::get('/tasks', [ClientTaskController::class, 'index'])->name('tasks.index');

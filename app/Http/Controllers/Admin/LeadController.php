@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ClientPortalInvite;
 use App\Models\ClientKey;
 use App\Models\Lead;
 use App\Models\OnboardingSession;
 use App\Models\OnboardingStep;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -78,6 +80,8 @@ class LeadController extends Controller
 
     public function convertToClient(Lead $lead)
     {
+        // Log the lead ID for debugging purposes
+        \Log::info('convertToClient hit', ['lead_id' => $lead->id]);
         $clientKey = ClientKey::firstOrCreate([
             'key' => (string) Str::uuid(),
         ], [
@@ -89,6 +93,15 @@ class LeadController extends Controller
 
         $lead->status = 'won';
         $lead->save();
+
+        if ($lead->email) {
+            Mail::to($lead->email)->send(
+                new ClientPortalInvite(
+                    $clientKey,
+                    $lead->company_name ?: $lead->name,
+                )
+            );
+        }
 
         $onboarding = OnboardingSession::firstOrCreate([
             'lead_id' => $lead->id,
